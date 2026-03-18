@@ -8,6 +8,8 @@ import Episode from './pages/Episode'
 import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
+import ShowDetail from './pages/ShowDetail'
+import UserProfile from './pages/UserProfile'
 
 export default function App() {
   const [user, setUser] = useState(undefined)
@@ -15,15 +17,13 @@ export default function App() {
 
   useEffect(() => {
     return onAuthStateChanged(auth, u => {
-      setUser(u || null)
-      if (u && !localStorage.getItem('onboarding_done')) {
-        setShowOnboarding(true)
-      }
+      setUser(u||null)
+      if (u && !localStorage.getItem('onboarding_done')) setShowOnboarding(true)
     })
   }, [])
 
   function doneOnboarding() {
-    localStorage.setItem('onboarding_done', '1')
+    localStorage.setItem('onboarding_done','1')
     setShowOnboarding(false)
   }
 
@@ -42,7 +42,9 @@ export default function App() {
       <Route path="/" element={user ? <Home user={user} /> : <Navigate to="/login" />} />
       <Route path="/search" element={user ? <Search user={user} /> : <Navigate to="/login" />} />
       <Route path="/episode/:showId/:seasonNum/:episodeNum" element={user ? <Episode user={user} /> : <Navigate to="/login" />} />
+      <Route path="/show/:showId" element={user ? <ShowDetail user={user} /> : <Navigate to="/login" />} />
       <Route path="/profile" element={user ? <Profile user={user} /> : <Navigate to="/login" />} />
+      <Route path="/user/:userId" element={user ? <UserProfile user={user} /> : <Navigate to="/login" />} />
     </Routes>
   )
 }
