@@ -15,10 +15,12 @@ const BADGES = [
 ]
 const LEVELS = [{min:0,label:'Spectateur'},{min:10,label:'Critique'},{min:50,label:'Cinéphile'},{min:200,label:'Expert'},{min:500,label:'Légende'}]
 const AVATARS = ['🎬','🎭','🍿','🦊','🌙','⭐','🔥','🎸','🦋','🎮','🌊','🌺']
+const IMGBB_KEY = '7c8a1e3c5f9b2d4a6e8f0c1b3d5e7f9a'
 const COUNTRIES = ['France','Belgique','Suisse','Canada','États-Unis','Royaume-Uni','Espagne','Allemagne','Italie','Japon','Autre']
 const BANNER_COLORS = ['#1A1A2E','#16213E','#1E1B4B','#085041','#412402','#4A1B0C','#26215C','#0C447C']
 
 function getLevel(c) { let l=LEVELS[0]; for(const x of LEVELS){if(c>=x.min)l=x}; return l }
+function getLevelIndex(c) { let i=0; LEVELS.forEach((x,j)=>{if(c>=x.min)i=j}); return i }
 function getNextBadge(c) { return BADGES.find(b=>b.threshold>c) }
 
 const s = {
@@ -32,10 +34,10 @@ const s = {
   levelBadge: { display:'inline-flex', gap:4, background:'#1E1B4B', borderRadius:20, padding:'3px 10px', fontSize:11, color:'#9F9BE8', fontWeight:600, marginBottom:10 },
   stats: { display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, padding:'0 16px', marginBottom:14 },
   statCard: { background:'#16213E', borderRadius:10, padding:'8px 4px', border:'1px solid #2C2C2A', textAlign:'center' },
-  statNum: { fontSize:16, fontWeight:700, color:'#534AB7', marginBottom:2 },
-  statLabel: { fontSize:9, color:'#888780', lineHeight:1.3 },
+  statNum: { fontSize:16, fontWeight:700, color:'#FFFFFF', marginBottom:2 },
+  statLabel: { fontSize:9, color:'#D3D1C7', lineHeight:1.3 },
   section: { padding:'0 16px', marginBottom:14 },
-  sectionTitle: { fontSize:11, fontWeight:600, color:'#888780', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 },
+  sectionTitle: { fontSize:11, fontWeight:600, color:'#D3D1C7', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 },
   badgesGrid: { display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:6 },
   badgeItem: { background:'#16213E', borderRadius:10, padding:'8px 4px', textAlign:'center', border:'1px solid #534AB7' },
   badgeLocked: { background:'#16213E', borderRadius:10, padding:'8px 4px', textAlign:'center', border:'1px solid #2C2C2A' },
@@ -73,6 +75,9 @@ export default function Profile({ user }) {
   const [twitter, setTwitter] = useState('')
   const [letterboxd, setLetterboxd] = useState('')
   const [country, setCountry] = useState('France')
+  const [bannerImg, setBannerImg] = useState('')
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState('')
   const [stats, setStats] = useState({ comments:0, movieFavs:0, serieFavs:0, reactions:0 })
 
   useEffect(() => {
@@ -83,6 +88,8 @@ export default function Profile({ user }) {
         setNewName(d.displayName||user.displayName||'')
         setSelectedAvatar(d.avatar||null)
         setSelectedBanner(d.bannerColor||BANNER_COLORS[0])
+        setBannerImg(d.bannerImg||'')
+        setPhotoPreview(d.photoURL||'')
         setInstagram(d.social?.instagram||'')
         setTwitter(d.social?.twitter||'')
         setLetterboxd(d.social?.letterboxd||'')
@@ -97,7 +104,8 @@ export default function Profile({ user }) {
       displayName: newName || user.displayName || 'Anonyme',
       avatar: selectedAvatar,
       bannerColor: selectedBanner,
-      photoURL: selectedAvatar ? null : (user.photoURL||''),
+      bannerImg: bannerImg,
+      photoURL: selectedAvatar ? null : (photoPreview || user.photoURL||''),
       social: { instagram, twitter, letterboxd },
       country,
       commentCount: profileData?.commentCount||0,
@@ -123,7 +131,7 @@ export default function Profile({ user }) {
     <div style={s.page}>
       <ToastContainer toasts={toasts} />
 
-      <div style={{ ...s.bannerArea, background: bannerColor }}>
+      <div style={{ ...s.bannerArea, background: bannerColor, backgroundImage: (profileData?.bannerImg||bannerImg) ? `url(${profileData?.bannerImg||bannerImg})` : 'none', backgroundSize:'cover', backgroundPosition:'center' }}>
         <div style={s.avatarWrap}>
           <div style={s.avatar}>
             {avatarDisplay ? <span style={{ fontSize:26 }}>{avatarDisplay}</span>
@@ -162,18 +170,26 @@ export default function Profile({ user }) {
         </div>
       </div>
 
-      {nextBadge && (
-        <div style={{ padding:'0 16px', marginBottom:14 }}>
-          <div style={s.progressWrap}>
-            <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-              <span style={{ color:'#fff', fontWeight:600 }}>{level.label}</span>
-              <span style={{ color:'#888780' }}>{count}/{nextThreshold}</span>
-            </div>
-            <div style={s.progressBar}><div style={{ ...s.progressFill, width:`${progress}%` }}/></div>
-            <div style={{ fontSize:10, color:'#888780' }}>Prochain : {nextBadge.emoji} {nextBadge.label} — {nextBadge.desc}</div>
+      <div style={{ padding:'0 16px', marginBottom:14 }}>
+        <div style={s.progressWrap}>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:6 }}>
+            <span style={{ color:'#fff', fontWeight:600 }}>Niveau actuel : {level.label}</span>
+            <span style={{ color:'#D3D1C7' }}>{count} commentaire{count>1?'s':''}</span>
           </div>
+          <div style={{ display:'flex', gap:4, marginBottom:8 }}>
+            {LEVELS.map((l,i) => {
+              const reached = count >= l.min
+              return (
+                <div key={l.label} style={{ flex:1, textAlign:'center' }}>
+                  <div style={{ height:4, borderRadius:2, background: reached ? '#534AB7' : '#2C2C2A', marginBottom:3 }} />
+                  <div style={{ fontSize:8, color: reached ? '#9F9BE8' : '#444441' }}>{l.label}</div>
+                </div>
+              )
+            })}
+          </div>
+          {nextBadge && <div style={{ fontSize:10, color:'#888780' }}>Prochain badge : {nextBadge.emoji} {nextBadge.label} — {nextBadge.desc}</div>}
         </div>
-      )}
+      </div>
 
       <div style={{ padding:'0 16px 16px' }}>
         <button style={{ background:'none', border:'1px solid #2C2C2A', borderRadius:10, padding:'11px', color:'#888780', fontSize:12, cursor:'pointer', width:'100%' }}
@@ -186,16 +202,38 @@ export default function Profile({ user }) {
             <div style={s.modalTitle}>Modifier mon profil</div>
             <label style={s.label}>Pseudo</label>
             <input style={s.input} placeholder="Ton pseudo" value={newName} onChange={e => setNewName(e.target.value)} />
-            <label style={s.label}>Avatar</label>
+            <label style={s.label}>Photo de profil</label>
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'#1A1A2E', border:'1px solid #2C2C2A', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
+                {photoPreview ? <img src={photoPreview} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : (selectedAvatar || '👤')}
+              </div>
+              <div style={{ flex:1 }}>
+                <input type="file" accept="image/*" style={{ display:'none' }} id="photo-upload"
+                  onChange={e => {
+                    const f = e.target.files[0]
+                    if (f) {
+                      setPhotoFile(f)
+                      const reader = new FileReader()
+                      reader.onload = ev => setPhotoPreview(ev.target.result)
+                      reader.readAsDataURL(f)
+                      setSelectedAvatar(null)
+                    }
+                  }} />
+                <label htmlFor="photo-upload" style={{ background:'#534AB7', border:'none', borderRadius:8, padding:'7px 14px', color:'#FFF', fontSize:12, cursor:'pointer', display:'inline-block' }}>Choisir une photo</label>
+              </div>
+            </div>
+            <label style={s.label}>Ou choisir un avatar emoji</label>
             <div style={s.avatarGrid}>
               {AVATARS.map(a => (
-                <div key={a} style={{ ...s.avatarOption, ...(selectedAvatar===a?s.avatarActive:{}) }} onClick={() => setSelectedAvatar(selectedAvatar===a?null:a)}>{a}</div>
+                <div key={a} style={{ ...s.avatarOption, ...(selectedAvatar===a?s.avatarActive:{}) }} onClick={() => { setSelectedAvatar(selectedAvatar===a?null:a); if(selectedAvatar!==a){setPhotoPreview('');setPhotoFile(null)} }}>{a}</div>
               ))}
             </div>
-            <label style={s.label}>Couleur de bannière</label>
+            <label style={s.label}>Image de bannière (URL)</label>
+            <input style={s.input} placeholder="https://... (image en ligne)" value={bannerImg} onChange={e => setBannerImg(e.target.value)} />
+            <label style={s.label}>Ou couleur de bannière</label>
             <div style={s.bannerGrid}>
               {BANNER_COLORS.map(c => (
-                <div key={c} style={{ ...s.bannerOption, background:c, ...(selectedBanner===c?s.bannerActive:{}) }} onClick={() => setSelectedBanner(c)} />
+                <div key={c} style={{ ...s.bannerOption, background:c, ...(selectedBanner===c?s.bannerActive:{}) }} onClick={() => { setSelectedBanner(c); setBannerImg('') }} />
               ))}
             </div>
             <label style={s.label}>Instagram</label>
