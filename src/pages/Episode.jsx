@@ -225,7 +225,7 @@ export default function Episode({ user }) {
   const synopsis = show?.overview||episode?.overview||''
 
   const st = {
-    page: { height:'100vh', background:'#0F0F1A', color:'#FFFFFF', display:'flex', flexDirection:'column', overflow:'hidden' },
+    page: { height:'100vh', background:'#0F0F1A', color:'#FFFFFF', display:'flex', flexDirection:'column', overflow:'hidden', paddingBottom:60 },
     banner: { width:'100%', height:120, objectFit:'cover', background:'#1A2340', flexShrink:0 },
     bannerPlaceholder: { width:'100%', height:70, background:'#1A2340', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 },
     header: { padding:'8px 14px', display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid #2C2C2A', flexShrink:0 },
@@ -258,7 +258,7 @@ export default function Episode({ user }) {
     filter: { padding:'5px 14px', display:'flex', gap:5, overflowX:'auto', flexShrink:0, borderBottom:'1px solid #2C2C2A' },
     filterBtn: { background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:20, padding:'3px 9px', color:'#B0AECB', fontSize:10, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 },
     filterActive: { background:'#534AB7', border:'1px solid #534AB7', color:'#FFF' },
-    comments: { flex:1, overflowY:'auto', padding:'8px 14px' },
+    comments: { flex:1, overflowY:'auto', padding:'8px 14px', paddingBottom:16 },
     comment: { display:'flex', gap:8, marginBottom:10, alignItems:'flex-start' },
     avatar: { width:26, height:26, borderRadius:'50%', flexShrink:0, background:'#2C2C2A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, overflow:'hidden', cursor:'pointer' },
     bubble: { flex:1, background:'#1A2340', borderRadius:'4px 10px 10px 10px', padding:'7px 10px', border:'1px solid #3A3A5C' },

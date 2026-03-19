@@ -63,21 +63,30 @@ export default function Home({ user }) {
   const [streamingMovies, setStreamingMovies] = useState([])
   const [userLang, setUserLang] = useState('fr-FR')
 
-  // Scènes qui buzzent
+  // Scènes qui buzzent — lit depuis userComments (collection plate)
   useEffect(() => {
-    const q = query(collection(db, 'comments'), orderBy('createdAt','desc'), limit(100))
+    const q = query(collection(db, 'userComments'), orderBy('createdAt','desc'), limit(200))
     return onSnapshot(q, snap => {
       const buckets = {}
       snap.docs.forEach(doc => {
         const d = doc.data()
-        if (d.timestamp === null || d.timestamp === undefined) return
-        const key = `${d.showId}_${d.seasonNum}_${d.episodeNum}_${Math.floor(d.timestamp/30)}`
-        if (!buckets[key]) buckets[key] = { showId:d.showId, showName:d.showName, seasonNum:d.seasonNum, episodeNum:d.episodeNum, timestamp:d.timestamp, count:0, isMovie: d.seasonNum===0 }
+        if (!d.showId) return
+        // Grouper par épisode + fenêtre de 60s si timestamp dispo, sinon juste par épisode
+        const tBucket = d.timestamp != null ? Math.floor(d.timestamp/60) : 'notimed'
+        const key = `${d.showId}_${d.seasonNum}_${d.episodeNum}_${tBucket}`
+        if (!buckets[key]) buckets[key] = {
+          showId: d.showId, showName: d.showName,
+          seasonNum: d.seasonNum, episodeNum: d.episodeNum,
+          timestamp: d.timestamp, count: 0,
+          isMovie: !d.seasonNum || d.seasonNum === 0
+        }
         buckets[key].count++
-        const totalReactions = Object.values(d.reactions||{}).reduce((a,b)=>a+b,0)
-        buckets[key].count += totalReactions
+        buckets[key].count += Object.values(d.reactions||{}).reduce((a,b)=>a+b,0)
       })
-      const sorted = Object.values(buckets).sort((a,b)=>b.count-a.count).slice(0,5)
+      const sorted = Object.values(buckets)
+        .filter(b => b.count > 0)
+        .sort((a,b) => b.count - a.count)
+        .slice(0, 5)
       setBuzzScenes(sorted)
     })
   }, [])
