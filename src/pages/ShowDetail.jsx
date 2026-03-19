@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import Nav from '../components/Nav'
 import { useParams, useNavigate } from 'react-router-dom'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'

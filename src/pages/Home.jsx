@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore'
 import { db } from '../firebase'
+import Nav from '../components/Nav'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 
 const s = {
   page: { minHeight:'100vh', background:'#1A1A2E', color:'#FFFFFF', paddingBottom:70 },
   header: { padding:'20px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between' },
-  logo: { fontSize:18, fontWeight:700, color:'#FFFFFF' },
+  logo: { fontSize:18, fontWeight:700 },
   avatar: { width:34, height:34, borderRadius:'50%', cursor:'pointer', border:'2px solid #534AB7', objectFit:'cover' },
   avatarFallback: { width:34, height:34, borderRadius:'50%', cursor:'pointer', border:'2px solid #534AB7', background:'#534AB7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'#fff', fontWeight:700 },
   searchBtn: { margin:'14px 20px 8px', background:'#16213E', border:'1px solid #2C2C2A', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10, cursor:'pointer' },
@@ -27,12 +28,8 @@ const s = {
   releaseInfo: { padding:'8px' },
   releaseTitle: { fontSize:11, fontWeight:600, color:'#FFF', lineHeight:1.3, marginBottom:2 },
   releaseMeta: { fontSize:10, color:'#888780' },
-  sectionHeader: { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10, padding:'14px 20px 0' },
+  sectionHeader: { display:'flex', alignItems:'center', padding:'14px 20px 0' },
   sectionHeaderTitle: { fontSize:11, fontWeight:600, color:'#888780', textTransform:'uppercase', letterSpacing:'0.08em' },
-  nav: { position:'fixed', bottom:0, left:0, right:0, background:'#0F0F1A', borderTop:'1px solid #2C2C2A', display:'flex', padding:'10px 0', zIndex:50 },
-  navItem: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, cursor:'pointer', padding:'3px 0' },
-  navIcon: { fontSize:20 },
-  navLabel: { fontSize:10, color:'#888780' },
 }
 
 export default function Home({ user }) {
@@ -40,7 +37,7 @@ export default function Home({ user }) {
   const [recent, setRecent] = useState([])
   const [inProgress, setInProgress] = useState([])
   const [newSeries, setNewSeries] = useState([])
-  const [newMovies, setNewMovies] = useState([])
+  const [streamingMovies, setStreamingMovies] = useState([])
 
   useEffect(() => {
     const q = query(collection(db, 'comments'), orderBy('createdAt','desc'), limit(30))
@@ -72,10 +69,10 @@ export default function Home({ user }) {
   useEffect(() => {
     Promise.all([
       fetch(`https://api.themoviedb.org/3/tv/on_the_air?api_key=${TMDB_KEY}&language=fr-FR`).then(r=>r.json()),
-      fetch(`https://api.themoviedb.org/3/movie/now_playing?api_key=${TMDB_KEY}&language=fr-FR`).then(r=>r.json()),
+      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=fr-FR&with_watch_monetization_types=flatrate`).then(r=>r.json()),
     ]).then(([tv, movies]) => {
       setNewSeries((tv.results||[]).slice(0,8))
-      setNewMovies((movies.results||[]).slice(0,8))
+      setStreamingMovies((movies.results||[]).slice(0,8))
     })
   }, [])
 
@@ -83,8 +80,6 @@ export default function Home({ user }) {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const photoURL = user?.photoURL || ''
-
-  function isMovie(item) { return !item.seasonNum || item.seasonNum === 0 }
 
   return (
     <div style={s.page}>
@@ -117,9 +112,7 @@ export default function Home({ user }) {
               </div>
               <div style={s.cardInfo}>
                 <div style={s.cardTitle}>{item.showName}</div>
-                <div style={s.cardMeta}>
-                  {isMovie(item) ? (item.showYear || 'Film') : `S${String(item.seasonNum||0).padStart(2,'0')}E${String(item.episodeNum||0).padStart(2,'0')}`}
-                </div>
+                <div style={s.cardMeta}>{(!item.seasonNum||item.seasonNum===0) ? 'Film' : `S${String(item.seasonNum).padStart(2,'0')}E${String(item.episodeNum).padStart(2,'0')}`}</div>
               </div>
               <span style={{ fontSize:15, color:'#888780' }}>›</span>
             </div>
@@ -138,9 +131,7 @@ export default function Home({ user }) {
               </div>
               <div style={s.cardInfo}>
                 <div style={s.cardTitle}>{r.showName||'Série'}</div>
-                <div style={s.cardMeta}>
-                  {(!r.seasonNum || r.seasonNum===0) ? '' : `S${String(r.seasonNum).padStart(2,'0')}E${String(r.episodeNum).padStart(2,'0')} · `}{r.episodeName||''}
-                </div>
+                <div style={s.cardMeta}>{(!r.seasonNum||r.seasonNum===0)?'Film':`S${String(r.seasonNum).padStart(2,'0')}E${String(r.episodeNum).padStart(2,'0')}`}</div>
               </div>
               <div style={s.badge}>{r.count} 💬</div>
             </div>
@@ -149,31 +140,25 @@ export default function Home({ user }) {
 
       {newSeries.length > 0 && (
         <>
-          <div style={s.sectionHeader}>
-            <div style={s.sectionHeaderTitle}>📺 Séries — sorties de la semaine</div>
-          </div>
-          <div style={s.scrollRow}>
+          <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>📺 Séries — cette semaine</div></div>
+          <div style={{ ...s.scrollRow, marginTop:10 }}>
             {newSeries.map(show => (
               <div key={show.id} style={s.releaseCard} onClick={() => navigate('/search', { state:{ autoSelect:{ ...show, media_type:'tv' } } })}>
                 <div style={s.releaseImg}>
                   {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '📺'}
                 </div>
-                <div style={s.releaseInfo}>
-                  <div style={s.releaseTitle}>{show.name}</div>
-                </div>
+                <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
               </div>
             ))}
           </div>
         </>
       )}
 
-      {newMovies.length > 0 && (
+      {streamingMovies.length > 0 && (
         <>
-          <div style={s.sectionHeader}>
-            <div style={s.sectionHeaderTitle}>🎬 Films — en ce moment au ciné</div>
-          </div>
-          <div style={s.scrollRow}>
-            {newMovies.map(movie => (
+          <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>🎬 Films populaires en streaming</div></div>
+          <div style={{ ...s.scrollRow, marginTop:10 }}>
+            {streamingMovies.map(movie => (
               <div key={movie.id} style={s.releaseCard} onClick={() => navigate(`/episode/${movie.id}/0/0`, { state:{ show:{ ...movie, media_type:'movie' } } })}>
                 <div style={s.releaseImg}>
                   {movie.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${movie.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '🎬'}
@@ -188,20 +173,7 @@ export default function Home({ user }) {
         </>
       )}
 
-      <nav style={s.nav}>
-        <div style={s.navItem}>
-          <span style={s.navIcon}>🏠</span>
-          <span style={{ ...s.navLabel, color:'#534AB7' }}>Accueil</span>
-        </div>
-        <div style={s.navItem} onClick={() => navigate('/search')}>
-          <span style={s.navIcon}>🔍</span>
-          <span style={s.navLabel}>Rechercher</span>
-        </div>
-        <div style={s.navItem} onClick={() => navigate('/profile')}>
-          <span style={s.navIcon}>👤</span>
-          <span style={s.navLabel}>Profil</span>
-        </div>
-      </nav>
+      <Nav />
     </div>
   )
 }

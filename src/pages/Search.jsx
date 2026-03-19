@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import Nav from '../components/Nav'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
