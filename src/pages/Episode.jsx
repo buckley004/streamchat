@@ -61,6 +61,9 @@ export default function Episode({ user }) {
   const [sliderTime, setSliderTime] = useState(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [pendingComments, setPendingComments] = useState([])
+  const [showGif, setShowGif] = useState(false)
+  const [gifQuery, setGifQuery] = useState('')
+  const [gifs, setGifs] = useState([])
   const [userCommentCount, setUserCommentCount] = useState(0)
   const [maxTime, setMaxTime] = useState(120)
   const timerRef = useRef(null)
@@ -138,6 +141,30 @@ export default function Episode({ user }) {
     const max = Math.max(...data, 1)
     return data.map(v => v/max)
   }, [comments, maxTime])
+
+  async function searchGifs(q) {
+    if (!q.trim()) { setGifs([]); return }
+    const r = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh&q=${encodeURIComponent(q)}&limit=12&rating=g`)
+    const d = await r.json()
+    setGifs(d.data||[])
+  }
+
+  async function sendGif(gifUrl) {
+    const colId = `${showId}_s${seasonNum}_e${episodeNum}`
+    const commentData = {
+      text: '', gifUrl,
+      userId: user.uid, userName: user.displayName||'Anonyme',
+      userPhoto: user.photoURL||'', timestamp: running ? elapsed : null,
+      showId, showName: show?.name||show?.title||'',
+      showPoster: show?.poster_path||'',
+      seasonNum: parseInt(seasonNum), episodeNum: parseInt(episodeNum),
+      episodeName: episode?.name||show?.title||'',
+      replyTo: null, reactions: {}, createdAt: serverTimestamp()
+    }
+    await addDoc(collection(db, 'comments', colId, 'messages'), commentData)
+    await addDoc(collection(db, 'userComments'), commentData)
+    setShowGif(false); setGifs([]); setGifQuery('')
+  }
 
   async function toggleFav() {
     const favRef = doc(db, 'favorites', `${user.uid}_${showId}`)
@@ -248,9 +275,6 @@ export default function Episode({ user }) {
     timerLabel: { fontSize:9, color:'#B0AECB' },
     heatmapWrap: { padding:'6px 14px', flexShrink:0, borderBottom:'1px solid #2C2C2A' },
     heatmapLabel: { fontSize:10, color:'#B0AECB', marginBottom:4 },
-    heatmapBars: { display:'flex', gap:1, height:24, alignItems:'flex-end', marginBottom:4 },
-    heatmapBar: { flex:1, borderRadius:2, minHeight:2, background:'#534AB7', opacity:0.3 },
-    heatmapBarActive: { opacity:1 },
     slider: { width:'100%', accentColor:'#534AB7' },
     sliderRow: { display:'flex', justifyContent:'space-between', fontSize:9, color:'#8888A0', marginTop:2 },
     revealBanner: { background:'rgba(26,26,46,0.95)', borderBottom:'1px solid #2C2C2A', padding:'8px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 },
@@ -329,13 +353,28 @@ export default function Episode({ user }) {
 
       <div style={st.heatmapWrap}>
         <div style={st.heatmapLabel}>🔥 Intensité des réactions {sliderTime!==null ? `— filtre : ${formatTime(sliderTime)} ±1min` : ''}</div>
-        <div style={st.heatmapBars}>
-          {heatmap.map((v,i) => {
-            const bucketTime = Math.floor((i/heatmap.length)*sliderMax)
-            const isActive = sliderTime !== null && Math.abs(bucketTime - sliderTime) < (sliderMax/heatmap.length)*2
-            return <div key={i} style={{ ...st.heatmapBar, height:`${Math.max(4, v*100)}%`, ...(isActive ? st.heatmapBarActive : {}) }} />
-          })}
-        </div>
+        <svg width="100%" height="40" style={{ display:'block', marginBottom:4 }}>
+          <defs>
+            <linearGradient id="curveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#534AB7" stopOpacity="0.4"/>
+              <stop offset="100%" stopColor="#534AB7" stopOpacity="0.05"/>
+            </linearGradient>
+          </defs>
+          {(() => {
+            const W = 320, H = 40, n = heatmap.length
+            const pts = heatmap.map((v,i) => [i/(n-1)*W, H - Math.max(2, v*H*0.9)])
+            const line = pts.map((p,i) => `${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
+            const area = line + ` L${W},${H} L0,${H} Z`
+            const sliderX = sliderTime !== null ? (sliderTime/sliderMax)*W : null
+            return (
+              <>
+                <path d={area} fill="url(#curveGrad)" />
+                <path d={line} fill="none" stroke="#534AB7" strokeWidth="1.5" strokeLinejoin="round"/>
+                {sliderX !== null && <line x1={sliderX} y1={0} x2={sliderX} y2={H} stroke="#9F9BE8" strokeWidth="1" strokeDasharray="3 2"/>}
+              </>
+            )
+          })()}
+        </svg>
         <input type="range" min={0} max={sliderMax} step={1} value={sliderTime??0} style={st.slider}
           onChange={e => setSliderTime(e.target.value==0&&sliderTime===null?null:parseInt(e.target.value))}
           onDoubleClick={() => setSliderTime(null)} />
@@ -375,7 +414,8 @@ export default function Episode({ user }) {
                 <span style={st.timeago}>{timeAgo(c.createdAt)}</span>
               </div>
               {c.replyTo && <div style={st.replyQuote}>"{c.replyTo.text}"</div>}
-              <div style={st.text}>{c.text}</div>
+              {c.gifUrl && <img src={c.gifUrl} alt="gif" style={{ maxWidth:'100%', borderRadius:8, marginBottom:4 }} />}
+              {c.text && <div style={st.text}>{c.text}</div>}
               <div style={st.actions}>
                 {EMOJIS.map(emoji => {
                   const cnt = c.reactions?.[emoji]||0
@@ -403,6 +443,25 @@ export default function Episode({ user }) {
       )}
 
       <div style={st.inputArea}>
+        {showGif && (
+          <div style={{ background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:10, padding:8, marginBottom:8 }}>
+            <input
+              style={{ width:'100%', background:'#0F0F1A', border:'1px solid #3A3A5C', borderRadius:8, padding:'6px 10px', color:'#FFF', fontSize:12, outline:'none', boxSizing:'border-box', marginBottom:6 }}
+              placeholder="Rechercher un GIF…"
+              value={gifQuery}
+              onChange={e => { setGifQuery(e.target.value); searchGifs(e.target.value) }}
+            />
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4, maxHeight:150, overflowY:'auto' }}>
+              {gifs.map(g => (
+                <img key={g.id}
+                  src={g.images.fixed_height_small.url}
+                  style={{ width:'100%', borderRadius:6, cursor:'pointer', objectFit:'cover', height:60 }}
+                  onClick={() => sendGif(g.images.original.url)}
+                  alt="" />
+              ))}
+            </div>
+          </div>
+        )}
         {running && <div style={{ fontSize:10, color:'#534AB7', marginBottom:4 }}>⏱ Sera horodaté à {formatTime(elapsed)}</div>}
         <div style={st.inputRow}>
           <textarea style={st.textarea}
@@ -410,6 +469,8 @@ export default function Episode({ user }) {
             value={text} onChange={e => setText(e.target.value)}
             onKeyDown={e => { if (e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendComment() } }}
             rows={1} />
+          <button style={{ background:'none', border:'1px solid #3A3A5C', borderRadius:9, width:36, height:36, color:'#B0AECB', fontSize:13, cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}
+            onClick={() => setShowGif(g => !g)}>GIF</button>
           <button style={{ ...st.sendBtn, ...(text.trim()?{}:{ background:'#2C2C2A', cursor:'not-allowed' }) }}
             onClick={sendComment} disabled={!text.trim()}>➤</button>
         </div>

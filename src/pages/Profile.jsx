@@ -82,6 +82,11 @@ export default function Profile({ user }) {
   const [letterboxd, setLetterboxd] = useState('')
   const [country, setCountry] = useState('France')
   const [photoPreview, setPhotoPreview] = useState('')
+  const [rawPhoto, setRawPhoto] = useState(null)
+  const [cropOffset, setCropOffset] = useState({ x:0, y:0 })
+  const [cropScale, setCropScale] = useState(1)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState(null)
   const [stats, setStats] = useState({ comments:0, movieFavs:0, serieFavs:0, reactions:0 })
   const [autoTags, setAutoTags] = useState([])
   const [favBanners, setFavBanners] = useState([])
@@ -141,30 +146,47 @@ export default function Profile({ user }) {
     })
   }, [user.uid])
 
+  const cropCanvasRef = useRef(null)
+
   function handlePhotoSelect(e) {
     const f = e.target.files[0]
     if (!f) return
     const reader = new FileReader()
     reader.onload = ev => {
-      // Recadrage circulaire via canvas
-      const img = new Image()
-      img.onload = () => {
-        const size = Math.min(img.width, img.height)
-        const canvas = document.createElement('canvas')
-        canvas.width = 200; canvas.height = 200
-        const ctx = canvas.getContext('2d')
-        ctx.beginPath()
-        ctx.arc(100, 100, 100, 0, Math.PI*2)
-        ctx.clip()
-        const sx = (img.width-size)/2, sy = (img.height-size)/2
-        ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200)
-        setPhotoPreview(canvas.toDataURL('image/jpeg', 0.8))
-        setSelectedAvatar(null)
-      }
-      img.src = ev.target.result
+      setRawPhoto(ev.target.result)
+      setCropOffset({ x:0, y:0 })
+      setCropScale(1)
+      setSelectedAvatar(null)
     }
     reader.readAsDataURL(f)
   }
+
+  function applyCrop() {
+    if (!rawPhoto) return
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 200; canvas.height = 200
+      const ctx = canvas.getContext('2d')
+      ctx.beginPath()
+      ctx.arc(100, 100, 100, 0, Math.PI*2)
+      ctx.clip()
+      const scale = cropScale
+      const size = Math.min(img.width, img.height) * scale
+      const sx = (img.width - size)/2 - cropOffset.x * img.width / (200*scale)
+      const sy = (img.height - size)/2 - cropOffset.y * img.height / (200*scale)
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200)
+      setPhotoPreview(canvas.toDataURL('image/jpeg', 0.9))
+      setRawPhoto(null)
+    }
+    img.src = rawPhoto
+  }
+
+  function onCropMouseDown(e) { setIsDragging(true); setDragStart({ x: e.clientX - cropOffset.x, y: e.clientY - cropOffset.y }) }
+  function onCropMouseMove(e) { if (!isDragging || !dragStart) return; setCropOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y }) }
+  function onCropMouseUp() { setIsDragging(false) }
+  function onCropTouchStart(e) { const t=e.touches[0]; setIsDragging(true); setDragStart({ x:t.clientX-cropOffset.x, y:t.clientY-cropOffset.y }) }
+  function onCropTouchMove(e) { if(!isDragging||!dragStart)return; const t=e.touches[0]; setCropOffset({ x:t.clientX-dragStart.x, y:t.clientY-dragStart.y }) }
 
   async function saveProfile() {
     const data = {
@@ -198,7 +220,7 @@ export default function Profile({ user }) {
     <div style={s.page}>
       <ToastContainer toasts={toasts} />
 
-      <div style={{ ...s.bannerArea, background: bannerImgUrl ? 'transparent' : bannerColor, backgroundImage: bannerImgUrl ? `url(${bannerImgUrl})` : 'none', backgroundSize:'cover', backgroundPosition:'center' }}>
+      <div style={{ ...s.bannerArea, background: bannerColor, ...(bannerImgUrl ? { backgroundImage:`url(${bannerImgUrl})`, backgroundSize:'cover', backgroundPosition:'center', backgroundRepeat:'no-repeat' } : {}) }}>
         <div style={s.avatarWrap}>
           <div style={s.avatar}>
             {avatarDisplay ? <span style={{ fontSize:28 }}>{avatarDisplay}</span>
@@ -285,18 +307,37 @@ export default function Profile({ user }) {
             <input style={s.input} placeholder="Ton pseudo" value={newName} onChange={e => setNewName(e.target.value)} />
 
             <label style={s.label}>Photo de profil</label>
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
-              <div style={{ width:52, height:52, borderRadius:'50%', background:'#0F0F1A', border:'1px solid #3A3A5C', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
-                {photoPreview && !selectedAvatar ? <img src={photoPreview} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : (selectedAvatar || '👤')}
+            {rawPhoto ? (
+              <div style={{ marginBottom:10 }}>
+                <div style={{ position:'relative', width:160, height:160, margin:'0 auto 8px', borderRadius:'50%', overflow:'hidden', background:'#0F0F1A', cursor:'move', userSelect:'none' }}
+                  onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onMouseLeave={onCropMouseUp}
+                  onTouchStart={onCropTouchStart} onTouchMove={onCropTouchMove} onTouchEnd={onCropMouseUp}>
+                  <img src={rawPhoto} style={{ position:'absolute', width:`${100*cropScale}%`, height:`${100*cropScale}%`, objectFit:'cover', left:`calc(50% + ${cropOffset.x}px)`, top:`calc(50% + ${cropOffset.y}px)`, transform:'translate(-50%,-50%)' }} alt="" draggable={false} />
+                  <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid #534AB7', pointerEvents:'none' }} />
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                  <span style={{ fontSize:10, color:'#B0AECB' }}>Zoom</span>
+                  <input type="range" min="1" max="3" step="0.05" value={cropScale} style={{ flex:1, accentColor:'#534AB7' }} onChange={e => setCropScale(parseFloat(e.target.value))} />
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button style={{ flex:1, background:'#534AB7', border:'none', borderRadius:8, padding:'7px', color:'#FFF', fontSize:12, cursor:'pointer' }} onClick={applyCrop}>Valider</button>
+                  <button style={{ flex:1, background:'none', border:'1px solid #3A3A5C', borderRadius:8, padding:'7px', color:'#B0AECB', fontSize:12, cursor:'pointer' }} onClick={() => setRawPhoto(null)}>Annuler</button>
+                </div>
               </div>
-              <div>
-                <input ref={fileInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handlePhotoSelect} />
-                <button style={{ background:'#534AB7', border:'none', borderRadius:8, padding:'7px 14px', color:'#FFF', fontSize:12, cursor:'pointer' }} onClick={() => fileInputRef.current?.click()}>
-                  Choisir une photo
-                </button>
-                <div style={{ fontSize:10, color:'#888780', marginTop:4 }}>Recadrée automatiquement en cercle</div>
+            ) : (
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+                <div style={{ width:52, height:52, borderRadius:'50%', background:'#0F0F1A', border:'1px solid #3A3A5C', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
+                  {photoPreview && !selectedAvatar ? <img src={photoPreview} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : (selectedAvatar || '👤')}
+                </div>
+                <div>
+                  <input ref={fileInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handlePhotoSelect} />
+                  <button style={{ background:'#534AB7', border:'none', borderRadius:8, padding:'7px 14px', color:'#FFF', fontSize:12, cursor:'pointer' }} onClick={() => fileInputRef.current?.click()}>
+                    Choisir une photo
+                  </button>
+                  <div style={{ fontSize:10, color:'#8888A0', marginTop:4 }}>Glisse pour recadrer, zoom pour ajuster</div>
+                </div>
               </div>
-            </div>
+            )}
 
             <label style={s.label}>Ou choisir un avatar emoji</label>
             <div style={s.avatarGrid}>
