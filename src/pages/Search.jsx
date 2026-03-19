@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Nav from '../components/Nav'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'
+import { collection, query, orderBy, limit, onSnapshot, doc, setDoc, getDoc, serverTimestamp, where } from 'firebase/firestore'
 import { db } from '../firebase'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
@@ -32,6 +32,15 @@ const s = {
   empty: { textAlign:'center', padding:'60px 20px', color:'#8888A0' },
 }
 
+
+function Heart({ filled, size=16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "#B0AECB" : "none"} stroke="#B0AECB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )
+}
+
 export default function Search({ user }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -44,11 +53,22 @@ export default function Search({ user }) {
   const [episodes, setEpisodes] = useState({})
   const [recentSearches, setRecentSearches] = useState([])
   const [trendingShows, setTrendingShows] = useState([])
+  const [favorites, setFavorites] = useState({})
   const timer = useRef(null)
 
   useEffect(() => {
     setRecentSearches(JSON.parse(localStorage.getItem('recentSearches') || '[]'))
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    const q = query(collection(db, 'favorites'), where('userId','==',user?.uid))
+    return onSnapshot(q, snap => {
+      const favMap = {}
+      snap.docs.forEach(d => { if (!d.data().deleted) favMap[d.data().showId] = true })
+      setFavorites(favMap)
+    })
+  }, [user])
 
   useEffect(() => {
     if (location.state?.autoSelect) selectShow(location.state.autoSelect)
@@ -87,6 +107,24 @@ export default function Search({ user }) {
       setLoading(false)
     }, 400)
   }, [queryText])
+
+  async function toggleFav(e, show) {
+    e.stopPropagation()
+    const showId = String(show.id)
+    const isMovie = show.media_type === 'movie'
+    const isFav = favorites[showId]
+    const favRef = doc(db, 'favorites', `${user.uid}_${showId}`)
+    const countRef = doc(db, 'favoriteCounts', showId)
+    const countSnap = await getDoc(countRef)
+    const currentCount = countSnap.exists() ? (countSnap.data().count||0) : 0
+    if (isFav) {
+      await setDoc(favRef, { deleted:true }, { merge:true })
+      await setDoc(countRef, { count: Math.max(0, currentCount-1) }, { merge:true })
+    } else {
+      await setDoc(favRef, { userId:user.uid, showId, showName:show.name||show.title||'', showPoster:show.poster_path||'', isMovie, createdAt:serverTimestamp() })
+      await setDoc(countRef, { count: currentCount+1 }, { merge:true })
+    }
+  }
 
   function saveRecentSearch(name) {
     const stored = JSON.parse(localStorage.getItem('recentSearches') || '[]')
@@ -182,7 +220,9 @@ export default function Search({ user }) {
                 <div style={s.meta}>{show.media_type === 'tv' ? 'Série' : 'Film'} · {(show.first_air_date || show.release_date || '').slice(0, 4)}</div>
                 {show.overview && <div style={s.synopsis}>{show.overview}</div>}
               </div>
-              <span style={{ fontSize:18, color:'#B0AECB', flexShrink:0 }}>›</span>
+              <button style={{ background:'none', border:'none', cursor:'pointer', padding:4, flexShrink:0 }} onClick={e => toggleFav(e, show)}>
+                <Heart filled={!!favorites[String(show.id)]} size={18} />
+              </button>
             </div>
           ))}
         </div>

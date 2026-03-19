@@ -108,16 +108,17 @@ export default function Home({ user }) {
   // Sorties séries + shows + films streaming
   useEffect(() => {
     Promise.all([
-      fetch(`https://api.themoviedb.org/3/tv/on_the_air?api_key=${TMDB_KEY}&language=fr-FR`).then(r=>r.json()),
-      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=fr-FR`).then(r=>r.json()),
+      fetch(`https://api.themoviedb.org/3/tv/on_the_air?api_key=${TMDB_KEY}&language=fr-FR&region=FR`).then(r=>r.json()),
+      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=fr-FR&region=FR&with_original_language=fr|en`).then(r=>r.json()),
     ]).then(([tv, movies]) => {
       const allTV = tv.results || []
       // Séparer séries scripted et shows
-      const scripted = allTV.filter(s => !s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g))).slice(0,8)
-      const shows = allTV.filter(s => s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g))).slice(0,8)
+      const isLatinTitle = t => /^[\x00-\x7F\u00C0-\u024F\s]+$/.test(t?.name || t?.title || '')
+      const scripted = allTV.filter(s => !s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g)) && isLatinTitle(s)).slice(0,8)
+      const shows = allTV.filter(s => s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g)) && isLatinTitle(s)).slice(0,8)
       setNewSeries(scripted)
       setShowSeries(shows)
-      setStreamingMovies((movies.results||[]).slice(0,8))
+      setStreamingMovies((movies.results||[]).filter(m => isLatinTitle(m)).slice(0,8))
     })
   }, [])
 
@@ -199,22 +200,6 @@ export default function Home({ user }) {
         </>
       )}
 
-      {showSeries.length > 0 && (
-        <>
-          <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>🎤 Shows & Divertissement</div></div>
-          <div style={{ ...s.scrollRow, marginTop:10 }}>
-            {showSeries.map(show => (
-              <div key={show.id} style={s.releaseCard} onClick={() => navigate('/search', { state:{ autoSelect:{ ...show, media_type:'tv' } } })}>
-                <div style={s.releaseImg}>
-                  {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '🎤'}
-                </div>
-                <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
       {streamingMovies.length > 0 && (
         <>
           <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>🎬 Films populaires en streaming</div></div>
@@ -228,6 +213,22 @@ export default function Home({ user }) {
                   <div style={s.releaseTitle}>{movie.title}</div>
                   <div style={s.releaseMeta}>{movie.release_date?.slice(0,4)}</div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {showSeries.length > 0 && (
+        <>
+          <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>🎤 Shows & Divertissement</div></div>
+          <div style={{ ...s.scrollRow, marginTop:10 }}>
+            {showSeries.map(show => (
+              <div key={show.id} style={s.releaseCard} onClick={() => navigate('/search', { state:{ autoSelect:{ ...show, media_type:'tv' } } })}>
+                <div style={s.releaseImg}>
+                  {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '🎤'}
+                </div>
+                <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
               </div>
             ))}
           </div>

@@ -9,7 +9,7 @@ const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 
 function Heart({ filled, size=20 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "#E24B4A" : "none"} stroke={filled ? "#E24B4A" : "#B0AECB"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "#B0AECB" : "none"} stroke="#B0AECB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
     </svg>
   )
@@ -227,7 +227,9 @@ export default function Episode({ user }) {
   function handleShare(c) {
     const ts = c.timestamp !== null ? ` à ${formatTime(c.timestamp)}` : ''
     const url = `${window.location.origin}/episode/${showId}/${seasonNum}/${episodeNum}`
-    const msg = `"${c.text}"${ts} — sur ${c.showName||'StreamChat'}\n👉 ${url}`
+    const textPart = c.text ? `"${c.text}"` : ''
+    const gifPart = c.gifUrl ? `\n🎬 ${c.gifUrl}` : ''
+    const msg = `${textPart}${ts}${gifPart} — sur ${c.showName||'StreamChat'}\n👉 ${url}`
     if (!localStorage.getItem('first_share_done')) { localStorage.setItem('first_share_done','1'); showToast('Premier partage !','↗️') }
     if (navigator.share) navigator.share({ text:msg })
     else { navigator.clipboard.writeText(msg); showToast('Lien copié !','📋') }

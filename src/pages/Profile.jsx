@@ -77,6 +77,8 @@ export default function Profile({ user }) {
   const [selectedAvatar, setSelectedAvatar] = useState(null)
   const [selectedBanner, setSelectedBanner] = useState(BANNER_COLORS[0])
   const [bannerImg, setBannerImg] = useState('')
+  const [bannerPosY, setBannerPosY] = useState(50)
+  const [activeList, setActiveList] = useState(null)
   const [instagram, setInstagram] = useState('')
   const [twitter, setTwitter] = useState('')
   const [letterboxd, setLetterboxd] = useState('')
@@ -89,6 +91,7 @@ export default function Profile({ user }) {
   const [dragStart, setDragStart] = useState(null)
   const [stats, setStats] = useState({ comments:0, movieFavs:0, serieFavs:0, reactions:0 })
   const [autoTags, setAutoTags] = useState([])
+  const [comments, setComments] = useState([])
   const [favBanners, setFavBanners] = useState([])
   const fileInputRef = useRef(null)
 
@@ -101,6 +104,7 @@ export default function Profile({ user }) {
         setSelectedAvatar(d.avatar||null)
         setSelectedBanner(d.bannerColor||BANNER_COLORS[0])
         setBannerImg(d.bannerImg||'')
+        setBannerPosY(d.bannerPosY||50)
         setInstagram(d.social?.instagram||'')
         setTwitter(d.social?.twitter||'')
         setLetterboxd(d.social?.letterboxd||'')
@@ -115,6 +119,7 @@ export default function Profile({ user }) {
     const q = query(collection(db, 'userComments'), where('userId','==',user.uid))
     return onSnapshot(q, snap => {
       const allComments = snap.docs.map(d => d.data())
+      setComments([...allComments].sort((a,b) => (b.createdAt?.toMillis()||0) - (a.createdAt?.toMillis()||0)))
       const commentCount = allComments.length
       const reactionsReceived = allComments.reduce((acc,c) => acc + Object.values(c.reactions||{}).reduce((a,b)=>a+b,0), 0)
 
@@ -155,7 +160,7 @@ export default function Profile({ user }) {
     reader.onload = ev => {
       setRawPhoto(ev.target.result)
       setCropOffset({ x:0, y:0 })
-      setCropScale(1)
+      setCropScale(1.2)
       setSelectedAvatar(null)
     }
     reader.readAsDataURL(f)
@@ -171,11 +176,15 @@ export default function Profile({ user }) {
       ctx.beginPath()
       ctx.arc(100, 100, 100, 0, Math.PI*2)
       ctx.clip()
-      const scale = cropScale
-      const size = Math.min(img.width, img.height) * scale
-      const sx = (img.width - size)/2 - cropOffset.x * img.width / (200*scale)
-      const sy = (img.height - size)/2 - cropOffset.y * img.height / (200*scale)
-      ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200)
+      const displaySize = 160
+      const imgAspect = img.width / img.height
+      let drawW, drawH
+      if (imgAspect > 1) { drawH = displaySize * cropScale; drawW = drawH * imgAspect }
+      else { drawW = displaySize * cropScale; drawH = drawW / imgAspect }
+      const scaleToCanvas = 200 / displaySize
+      const cx = (200 - drawW * scaleToCanvas) / 2 + cropOffset.x * scaleToCanvas
+      const cy = (200 - drawH * scaleToCanvas) / 2 + cropOffset.y * scaleToCanvas
+      ctx.drawImage(img, cx, cy, drawW * scaleToCanvas, drawH * scaleToCanvas)
       setPhotoPreview(canvas.toDataURL('image/jpeg', 0.9))
       setRawPhoto(null)
     }
@@ -220,7 +229,7 @@ export default function Profile({ user }) {
     <div style={s.page}>
       <ToastContainer toasts={toasts} />
 
-      <div style={{ ...s.bannerArea, background: bannerColor, ...(bannerImgUrl ? { backgroundImage:`url(${bannerImgUrl})`, backgroundSize:'cover', backgroundPosition:'center', backgroundRepeat:'no-repeat' } : {}) }}>
+      <div style={{ ...s.bannerArea, background: bannerColor, ...(bannerImgUrl ? { backgroundImage:`url(${bannerImgUrl})`, backgroundSize:'cover', backgroundPosition:`center ${bannerPosY}%`, backgroundRepeat:'no-repeat' } : {}) }}>
         <div style={s.avatarWrap}>
           <div style={s.avatar}>
             {avatarDisplay ? <span style={{ fontSize:28 }}>{avatarDisplay}</span>
@@ -236,11 +245,28 @@ export default function Profile({ user }) {
         <div style={s.levelBadge}>🎭 {level.label} · {country}</div>
       </div>
 
+      {activeList && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.9)', zIndex:200, display:'flex', flexDirection:'column' }}>
+          <div style={{ padding:'16px', display:'flex', alignItems:'center', gap:12, borderBottom:'1px solid #3A3A5C' }}>
+            <button style={{ background:'none', border:'none', color:'#FFF', fontSize:20, cursor:'pointer' }} onClick={() => setActiveList(null)}>←</button>
+            <span style={{ fontSize:15, fontWeight:700 }}>{activeList === 'comments' ? 'Mes commentaires' : activeList === 'movieFavs' ? 'Films favoris' : activeList === 'serieFavs' ? 'Séries favorites' : 'Réactions reçues'}</span>
+          </div>
+          <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
+            {activeList === 'comments' && comments.map((c,i) => (
+              <div key={i} style={{ background:'#1A2340', borderRadius:10, padding:12, marginBottom:8, border:'1px solid #3A3A5C' }}>
+                <div style={{ fontSize:11, color:'#B0AECB', marginBottom:4 }}>{c.showName} {c.seasonNum > 0 ? `S${String(c.seasonNum).padStart(2,'0')}E${String(c.episodeNum).padStart(2,'0')}` : ''}</div>
+                <div style={{ fontSize:13, color:'#FFFFFF' }}>{c.text}</div>
+              </div>
+            ))}
+            {activeList !== 'comments' && <div style={{ textAlign:'center', padding:'40px', color:'#8888A0', fontSize:13 }}>Fonctionnalité à venir</div>}
+          </div>
+        </div>
+      )}
       <div style={s.stats}>
-        <div style={s.statCard}><div style={s.statNum}>{count}</div><div style={s.statLabel}>Commentaires</div></div>
-        <div style={s.statCard}><div style={s.statNum}>{stats.movieFavs}</div><div style={s.statLabel}>Films favoris</div></div>
-        <div style={s.statCard}><div style={s.statNum}>{stats.serieFavs}</div><div style={s.statLabel}>Séries favorites</div></div>
-        <div style={s.statCard}><div style={s.statNum}>{stats.reactions}</div><div style={s.statLabel}>Réactions reçues</div></div>
+        <div style={{ ...s.statCard, cursor:'pointer' }} onClick={() => setActiveList('comments')}><div style={s.statNum}>{count}</div><div style={s.statLabel}>Commentaires</div></div>
+        <div style={{ ...s.statCard, cursor:'pointer' }} onClick={() => setActiveList('movieFavs')}><div style={s.statNum}>{stats.movieFavs}</div><div style={s.statLabel}>Films favoris</div></div>
+        <div style={{ ...s.statCard, cursor:'pointer' }} onClick={() => setActiveList('serieFavs')}><div style={s.statNum}>{stats.serieFavs}</div><div style={s.statLabel}>Séries favorites</div></div>
+        <div style={{ ...s.statCard, cursor:'pointer' }} onClick={() => setActiveList('reactions')}><div style={s.statNum}>{stats.reactions}</div><div style={s.statLabel}>Réactions reçues</div></div>
       </div>
 
       {autoTags.length > 0 && (
@@ -362,6 +388,16 @@ export default function Profile({ user }) {
             <label style={s.label}>Ou URL d'image personnalisée</label>
             <input style={s.input} placeholder="https://..." value={bannerImg} onChange={e => setBannerImg(e.target.value)} />
 
+            {(bannerImg) && (
+              <div style={{ marginBottom:8 }}>
+                <label style={s.label}>Position verticale de l'image</label>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize:10, color:'#8888A0' }}>Haut</span>
+                  <input type="range" min="0" max="100" step="1" value={bannerPosY} style={{ flex:1, accentColor:'#534AB7' }} onChange={e => setBannerPosY(parseInt(e.target.value))} />
+                  <span style={{ fontSize:10, color:'#8888A0' }}>Bas</span>
+                </div>
+              </div>
+            )}
             <label style={s.label}>Ou couleur de bannière</label>
             <div style={s.bannerGrid}>
               {BANNER_COLORS.map(c => (
