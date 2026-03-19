@@ -7,29 +7,29 @@ import { db } from '../firebase'
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 
 const s = {
-  page: { minHeight:'100vh', background:'#1A1A2E', color:'#FFFFFF', paddingBottom:80 },
+  page: { minHeight:'100vh', background:'#0F0F1A', color:'#FFFFFF', paddingBottom:80 },
   header: { padding:'20px 20px 16px', display:'flex', alignItems:'center', gap:12 },
   back: { fontSize:22, cursor:'pointer', background:'none', border:'none', color:'#FFF', padding:4 },
   title: { fontSize:18, fontWeight:700 },
   searchWrap: { padding:'0 20px 16px' },
-  input: { width:'100%', background:'#16213E', border:'1px solid #2C2C2A', borderRadius:12, padding:'14px 16px', color:'#FFFFFF', fontSize:15, outline:'none', boxSizing:'border-box' },
-  card: { background:'#16213E', borderRadius:12, padding:14, marginBottom:10, cursor:'pointer', border:'1px solid #2C2C2A', display:'flex', gap:12, alignItems:'flex-start' },
+  input: { width:'100%', background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:12, padding:'14px 16px', color:'#FFFFFF', fontSize:15, outline:'none', boxSizing:'border-box' },
+  card: { background:'#1A2340', borderRadius:12, padding:14, marginBottom:10, cursor:'pointer', border:'1px solid #3A3A5C', display:'flex', gap:12, alignItems:'flex-start' },
   poster: { width:52, height:78, borderRadius:8, objectFit:'cover', background:'#2C2C2A', flexShrink:0 },
   info: { flex:1, minWidth:0 },
   name: { fontSize:14, fontWeight:600, marginBottom:4 },
-  meta: { fontSize:12, color:'#888780', marginBottom:6 },
+  meta: { fontSize:12, color:'#B0AECB', marginBottom:6 },
   synopsis: { fontSize:12, color:'#B4B2A9', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' },
-  recentChip: { display:'inline-flex', alignItems:'center', gap:6, background:'#16213E', border:'1px solid #2C2C2A', borderRadius:20, padding:'7px 12px', marginRight:8, marginBottom:8, cursor:'pointer', fontSize:12, color:'#D3D1C7', whiteSpace:'nowrap' },
+  recentChip: { display:'inline-flex', alignItems:'center', gap:6, background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:20, padding:'7px 12px', marginRight:8, marginBottom:8, cursor:'pointer', fontSize:12, color:'#E8E6F8', whiteSpace:'nowrap' },
   recentWrap: { padding:'0 20px 16px', display:'flex', flexWrap:'wrap' },
-  sectionTitle: { fontSize:12, fontWeight:600, color:'#888780', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:12 },
-  trendingCard: { background:'#16213E', borderRadius:12, padding:12, marginBottom:8, cursor:'pointer', border:'1px solid #2C2C2A', display:'flex', gap:12, alignItems:'center' },
+  sectionTitle: { fontSize:12, fontWeight:600, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:12 },
+  trendingCard: { background:'#1A2340', borderRadius:12, padding:12, marginBottom:8, cursor:'pointer', border:'1px solid #3A3A5C', display:'flex', gap:12, alignItems:'center' },
   badge: { background:'#1E1B4B', borderRadius:20, padding:'2px 8px', fontSize:11, color:'#9F9BE8', fontWeight:600, flexShrink:0 },
   posterSmall: { width:40, height:40, borderRadius:8, objectFit:'cover', background:'#2C2C2A', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 },
-  seasonBtn: { background:'#16213E', border:'1px solid #2C2C2A', borderRadius:10, padding:'12px 16px', marginBottom:8, width:'100%', color:'#FFF', fontSize:14, cursor:'pointer', textAlign:'left', display:'flex', justifyContent:'space-between', alignItems:'center', boxSizing:'border-box' },
+  seasonBtn: { background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:10, padding:'12px 16px', marginBottom:8, width:'100%', color:'#FFF', fontSize:14, cursor:'pointer', textAlign:'left', display:'flex', justifyContent:'space-between', alignItems:'center', boxSizing:'border-box' },
   epBtn: { background:'#0F0F1A', border:'none', borderRadius:8, padding:'10px 14px', marginBottom:6, width:'100%', color:'#FFF', fontSize:13, cursor:'pointer', textAlign:'left', display:'flex', gap:10, alignItems:'center', boxSizing:'border-box' },
   epNum: { color:'#534AB7', fontWeight:700, minWidth:28, fontSize:12 },
-  loading: { textAlign:'center', padding:'40px', color:'#888780' },
-  empty: { textAlign:'center', padding:'60px 20px', color:'#444441' },
+  loading: { textAlign:'center', padding:'40px', color:'#B0AECB' },
+  empty: { textAlign:'center', padding:'60px 20px', color:'#8888A0' },
 }
 
 export default function Search({ user }) {
@@ -133,12 +133,12 @@ export default function Search({ user }) {
         <span style={s.title}>{selected.name || selected.title}</span>
       </div>
       <div style={{ padding:'0 20px' }}>
-        <div style={{ paddingBottom:8, fontSize:12, color:'#888780', textTransform:'uppercase', letterSpacing:'0.08em' }}>Choisir un épisode</div>
+        <div style={{ paddingBottom:8, fontSize:12, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em' }}>Choisir un épisode</div>
         {seasons.map(season => (
           <div key={season.season_number}>
             <button style={s.seasonBtn} onClick={() => toggleSeason(season.season_number)}>
               <span>Saison {season.season_number}</span>
-              <span style={{ color:'#888780', fontSize:12 }}>{season.episode_count} épisodes {openSeason === season.season_number ? '▲' : '▼'}</span>
+              <span style={{ color:'#B0AECB', fontSize:12 }}>{season.episode_count} épisodes {openSeason === season.season_number ? '▲' : '▼'}</span>
             </button>
             {openSeason === season.season_number && (
               <div style={{ paddingLeft:12 }}>
@@ -182,7 +182,7 @@ export default function Search({ user }) {
                 <div style={s.meta}>{show.media_type === 'tv' ? 'Série' : 'Film'} · {(show.first_air_date || show.release_date || '').slice(0, 4)}</div>
                 {show.overview && <div style={s.synopsis}>{show.overview}</div>}
               </div>
-              <span style={{ fontSize:18, color:'#888780', flexShrink:0 }}>›</span>
+              <span style={{ fontSize:18, color:'#B0AECB', flexShrink:0 }}>›</span>
             </div>
           ))}
         </div>

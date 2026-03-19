@@ -3,13 +3,13 @@ import { signInWithPopup } from 'firebase/auth'
 import { auth, googleProvider } from '../firebase'
 
 const s = {
-  page: { minHeight:'100vh', background:'#1A1A2E', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 },
+  page: { minHeight:'100vh', background:'#0F0F1A', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24 },
   logo: { fontSize:48, marginBottom:16 },
   title: { fontSize:28, fontWeight:700, color:'#FFFFFF', marginBottom:8 },
-  subtitle: { fontSize:15, color:'#888780', marginBottom:48, textAlign:'center', maxWidth:280, lineHeight:1.6 },
+  subtitle: { fontSize:15, color:'#B0AECB', marginBottom:48, textAlign:'center', maxWidth:280, lineHeight:1.6 },
   btn: { display:'flex', alignItems:'center', gap:12, background:'#FFFFFF', color:'#1A1A2E', border:'none', borderRadius:12, padding:'14px 28px', fontSize:15, fontWeight:600, cursor:'pointer', width:'100%', maxWidth:300, justifyContent:'center' },
-  tagline: { marginTop:40, fontSize:13, color:'#444441', textAlign:'center', lineHeight:1.8 },
-  feature: { display:'flex', alignItems:'center', gap:10, marginTop:12, color:'#888780', fontSize:14 },
+  tagline: { marginTop:40, fontSize:13, color:'#8888A0', textAlign:'center', lineHeight:1.8 },
+  feature: { display:'flex', alignItems:'center', gap:10, marginTop:12, color:'#B0AECB', fontSize:14 },
   dot: { width:8, height:8, borderRadius:'50%', background:'#534AB7', flexShrink:0 }
 }
 

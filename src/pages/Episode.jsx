@@ -214,64 +214,64 @@ export default function Episode({ user }) {
   const synopsis = show?.overview||episode?.overview||''
 
   const st = {
-    page: { height:'100vh', background:'#1A1A2E', color:'#FFF', display:'flex', flexDirection:'column', overflow:'hidden' },
-    banner: { width:'100%', height:120, objectFit:'cover', background:'#16213E', flexShrink:0 },
-    bannerPlaceholder: { width:'100%', height:70, background:'#16213E', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 },
+    page: { height:'100vh', background:'#0F0F1A', color:'#FFFFFF', display:'flex', flexDirection:'column', overflow:'hidden' },
+    banner: { width:'100%', height:120, objectFit:'cover', background:'#1A2340', flexShrink:0 },
+    bannerPlaceholder: { width:'100%', height:70, background:'#1A2340', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 },
     header: { padding:'8px 14px', display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid #2C2C2A', flexShrink:0 },
     back: { fontSize:20, cursor:'pointer', background:'none', border:'none', color:'#FFF', padding:'4px 6px', flexShrink:0 },
     headerInfo: { flex:1, minWidth:0 },
-    showName: { fontSize:11, color:'#888780', marginBottom:1 },
+    showName: { fontSize:11, color:'#B0AECB', marginBottom:1 },
     epRow: { display:'flex', alignItems:'center', gap:8 },
     epName: { fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
     favBtn: { fontSize:20, background:'none', border:'none', cursor:'pointer', padding:2, flexShrink:0 },
     headerRight: { display:'flex', alignItems:'center', gap:6, flexShrink:0 },
-    commentCount: { fontSize:11, color:'#888780' },
-    episodesBtn: { background:'#16213E', border:'1px solid #2C2C2A', borderRadius:8, padding:'3px 8px', fontSize:10, color:'#9F9BE8', cursor:'pointer' },
-    synopsis: { padding:'7px 14px', fontSize:11, color:'#888780', lineHeight:1.5, borderBottom:'1px solid #2C2C2A', flexShrink:0 },
+    commentCount: { fontSize:11, color:'#B0AECB' },
+    episodesBtn: { background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:8, padding:'3px 8px', fontSize:10, color:'#9F9BE8', cursor:'pointer' },
+    synopsis: { padding:'7px 14px', fontSize:11, color:'#B0AECB', lineHeight:1.5, borderBottom:'1px solid #2C2C2A', flexShrink:0 },
     offlineBanner: { background:'#412402', padding:'4px 14px', fontSize:10, color:'#FAC775', textAlign:'center', flexShrink:0 },
-    sync: { padding:'7px 14px', background:'#16213E', borderBottom:'1px solid #2C2C2A', flexShrink:0 },
+    sync: { padding:'7px 14px', background:'#1A2340', borderBottom:'1px solid #2C2C2A', flexShrink:0 },
     syncRow: { display:'flex', alignItems:'center', gap:8 },
     syncBtn: { background:'#534AB7', border:'none', borderRadius:8, padding:'6px 12px', color:'#FFF', fontSize:11, fontWeight:600, cursor:'pointer', flexShrink:0 },
     syncBtnStop: { background:'#2C2C2A', border:'none', borderRadius:8, padding:'6px 12px', color:'#E24B4A', fontSize:11, fontWeight:600, cursor:'pointer', flexShrink:0 },
     timer: { fontSize:16, fontWeight:700, color:'#534AB7', fontVariantNumeric:'tabular-nums' },
-    timerLabel: { fontSize:9, color:'#888780' },
+    timerLabel: { fontSize:9, color:'#B0AECB' },
     heatmapWrap: { padding:'6px 14px', flexShrink:0, borderBottom:'1px solid #2C2C2A' },
-    heatmapLabel: { fontSize:10, color:'#888780', marginBottom:4 },
+    heatmapLabel: { fontSize:10, color:'#B0AECB', marginBottom:4 },
     heatmapBars: { display:'flex', gap:1, height:24, alignItems:'flex-end', marginBottom:4 },
     heatmapBar: { flex:1, borderRadius:2, minHeight:2, background:'#534AB7', opacity:0.3 },
     heatmapBarActive: { opacity:1 },
     slider: { width:'100%', accentColor:'#534AB7' },
-    sliderRow: { display:'flex', justifyContent:'space-between', fontSize:9, color:'#444441', marginTop:2 },
+    sliderRow: { display:'flex', justifyContent:'space-between', fontSize:9, color:'#8888A0', marginTop:2 },
     revealBanner: { background:'rgba(26,26,46,0.95)', borderBottom:'1px solid #2C2C2A', padding:'8px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 },
     revealBtn: { background:'#534AB7', border:'none', borderRadius:8, padding:'6px 14px', color:'#FFF', fontSize:11, fontWeight:600, cursor:'pointer' },
     filter: { padding:'5px 14px', display:'flex', gap:5, overflowX:'auto', flexShrink:0, borderBottom:'1px solid #2C2C2A' },
-    filterBtn: { background:'#16213E', border:'1px solid #2C2C2A', borderRadius:20, padding:'3px 9px', color:'#888780', fontSize:10, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 },
+    filterBtn: { background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:20, padding:'3px 9px', color:'#B0AECB', fontSize:10, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 },
     filterActive: { background:'#534AB7', border:'1px solid #534AB7', color:'#FFF' },
     comments: { flex:1, overflowY:'auto', padding:'8px 14px' },
     comment: { display:'flex', gap:8, marginBottom:10, alignItems:'flex-start' },
     avatar: { width:26, height:26, borderRadius:'50%', flexShrink:0, background:'#2C2C2A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, overflow:'hidden', cursor:'pointer' },
-    bubble: { flex:1, background:'#16213E', borderRadius:'4px 10px 10px 10px', padding:'7px 10px', border:'1px solid #2C2C2A' },
+    bubble: { flex:1, background:'#1A2340', borderRadius:'4px 10px 10px 10px', padding:'7px 10px', border:'1px solid #3A3A5C' },
     bubbleOwn: { background:'#1E1B4B', border:'1px solid #534AB7' },
     blurred: { filter:'blur(5px)', userSelect:'none', pointerEvents:'none' },
     bubbleTop: { display:'flex', alignItems:'center', gap:4, marginBottom:3, flexWrap:'wrap' },
     username: { fontSize:11, fontWeight:600, cursor:'pointer' },
     badgePill: { fontSize:9, background:'#1E1B4B', borderRadius:8, padding:'1px 4px', color:'#9F9BE8' },
-    tsBadge: { fontSize:9, color:'#534AB7', background:'#1A1A2E', borderRadius:4, padding:'1px 4px', fontWeight:600 },
-    timeago: { fontSize:9, color:'#444441', marginLeft:'auto' },
-    replyQuote: { fontSize:10, color:'#888780', fontStyle:'italic', borderLeft:'2px solid #2C2C2A', paddingLeft:5, marginBottom:3 },
-    text: { fontSize:12, lineHeight:1.5, color:'#D3D1C7', marginBottom:4 },
+    tsBadge: { fontSize:9, color:'#534AB7', background:'#0F0F1A', borderRadius:4, padding:'1px 4px', fontWeight:600 },
+    timeago: { fontSize:9, color:'#8888A0', marginLeft:'auto' },
+    replyQuote: { fontSize:10, color:'#B0AECB', fontStyle:'italic', borderLeft:'2px solid #2C2C2A', paddingLeft:5, marginBottom:3 },
+    text: { fontSize:12, lineHeight:1.5, color:'#E8E6F8', marginBottom:4 },
     actions: { display:'flex', gap:3, flexWrap:'wrap', alignItems:'center' },
-    reactionBtn: { background:'#0F0F1A', border:'1px solid #2C2C2A', borderRadius:20, padding:'1px 5px', fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', gap:2 },
-    addReaction: { background:'none', border:'1px solid #2C2C2A', borderRadius:20, padding:'1px 5px', fontSize:10, cursor:'pointer', color:'#888780' },
-    actionBtn: { background:'none', border:'none', color:'#888780', fontSize:10, cursor:'pointer', padding:'0 3px' },
+    reactionBtn: { background:'#0F0F1A', border:'1px solid #3A3A5C', borderRadius:20, padding:'1px 5px', fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', gap:2 },
+    addReaction: { background:'none', border:'1px solid #3A3A5C', borderRadius:20, padding:'1px 5px', fontSize:10, cursor:'pointer', color:'#B0AECB' },
+    actionBtn: { background:'none', border:'none', color:'#B0AECB', fontSize:10, cursor:'pointer', padding:'0 3px' },
     emojiRow: { display:'flex', gap:4, padding:'3px 0' },
     emojiBtn: { fontSize:14, cursor:'pointer', background:'none', border:'none', padding:1 },
-    replyingBar: { background:'#16213E', borderLeft:'2px solid #534AB7', padding:'4px 10px', margin:'0 14px 4px', borderRadius:'0 8px 8px 0', fontSize:10, color:'#9F9BE8', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 },
+    replyingBar: { background:'#1A2340', borderLeft:'2px solid #534AB7', padding:'4px 10px', margin:'0 14px 4px', borderRadius:'0 8px 8px 0', fontSize:10, color:'#9F9BE8', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 },
     inputArea: { padding:'7px 14px 10px', borderTop:'1px solid #2C2C2A', background:'#0F0F1A', flexShrink:0 },
     inputRow: { display:'flex', gap:7, alignItems:'flex-end' },
-    textarea: { flex:1, background:'#16213E', border:'1px solid #2C2C2A', borderRadius:10, padding:'8px 11px', color:'#FFF', fontSize:13, resize:'none', outline:'none', minHeight:36, maxHeight:80, fontFamily:'inherit', lineHeight:1.4 },
+    textarea: { flex:1, background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:10, padding:'8px 11px', color:'#FFF', fontSize:13, resize:'none', outline:'none', minHeight:36, maxHeight:80, fontFamily:'inherit', lineHeight:1.4 },
     sendBtn: { background:'#534AB7', border:'none', borderRadius:9, width:36, height:36, color:'#FFF', fontSize:14, cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' },
-    empty: { textAlign:'center', padding:'20px', color:'#444441', fontSize:12 },
+    empty: { textAlign:'center', padding:'20px', color:'#8888A0', fontSize:12 },
   }
 
   const sliderMax = maxTime || 120
@@ -337,7 +337,7 @@ export default function Episode({ user }) {
 
       {!revealed && (
         <div style={st.revealBanner}>
-          <span style={{ fontSize:12, color:'#888780' }}>💬 {comments.length} commentaires — floutés pour éviter les spoilers</span>
+          <span style={{ fontSize:12, color:'#B0AECB' }}>💬 {comments.length} commentaires — floutés pour éviter les spoilers</span>
           <button style={st.revealBtn} onClick={() => setRevealed(true)}>Révéler</button>
         </div>
       )}
@@ -380,14 +380,14 @@ export default function Episode({ user }) {
             </div>
           </div>
         ))}
-        {pendingComments.length>0 && <div style={{ textAlign:'center', fontSize:10, color:'#888780', padding:4 }}>{pendingComments.length} en attente…</div>}
+        {pendingComments.length>0 && <div style={{ textAlign:'center', fontSize:10, color:'#B0AECB', padding:4 }}>{pendingComments.length} en attente…</div>}
         <div ref={bottomRef} />
       </div>
 
       {replyTo && (
         <div style={st.replyingBar}>
           <span>↩ @{replyTo.userName} : "{replyTo.text?.slice(0,40)}"</span>
-          <button style={{ background:'none', border:'none', color:'#888780', cursor:'pointer', fontSize:14 }} onClick={() => setReplyTo(null)}>×</button>
+          <button style={{ background:'none', border:'none', color:'#B0AECB', cursor:'pointer', fontSize:14 }} onClick={() => setReplyTo(null)}>×</button>
         </div>
       )}
 

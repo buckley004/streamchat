@@ -20,10 +20,10 @@ function getLevel(count) {
 }
 
 const s = {
-  page: { minHeight:'100vh', background:'#1A1A2E', color:'#FFF', paddingBottom:70 },
+  page: { minHeight:'100vh', background:'#0F0F1A', color:'#FFF', paddingBottom:70 },
   header: { padding:'16px 16px 0', display:'flex', alignItems:'center', gap:10 },
   back: { fontSize:22, cursor:'pointer', background:'none', border:'none', color:'#FFF', padding:'4px 8px' },
-  bannerArea: { height:80, background:'#16213E', position:'relative', marginBottom:36 },
+  bannerArea: { height:80, background:'#1A2340', position:'relative', marginBottom:36 },
   avatarWrap: { position:'absolute', bottom:-28, left:16 },
   avatar: { width:56, height:56, borderRadius:'50%', border:'3px solid #1A1A2E', background:'#534AB7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:'#fff', fontWeight:700, overflow:'hidden' },
   info: { padding:'0 16px 12px' },
@@ -32,21 +32,21 @@ const s = {
   rsRow: { display:'flex', gap:8, flexWrap:'wrap', marginBottom:12 },
   rsLink: { fontSize:12, color:'#534AB7', textDecoration:'none' },
   stats: { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, padding:'0 16px', marginBottom:16 },
-  statCard: { background:'#16213E', borderRadius:10, padding:'10px 8px', border:'1px solid #2C2C2A', textAlign:'center' },
+  statCard: { background:'#1A2340', borderRadius:10, padding:'10px 8px', border:'1px solid #3A3A5C', textAlign:'center' },
   statNum: { fontSize:20, fontWeight:700, color:'#534AB7', marginBottom:3 },
-  statLabel: { fontSize:10, color:'#888780' },
+  statLabel: { fontSize:10, color:'#B0AECB' },
   section: { padding:'0 16px', marginBottom:16 },
-  sectionTitle: { fontSize:11, fontWeight:600, color:'#888780', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 },
+  sectionTitle: { fontSize:11, fontWeight:600, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 },
   badgesGrid: { display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8 },
-  badgeItem: { background:'#16213E', borderRadius:10, padding:'10px 6px', textAlign:'center', border:'1px solid #534AB7' },
-  badgeLocked: { background:'#16213E', borderRadius:10, padding:'10px 6px', textAlign:'center', border:'1px solid #2C2C2A', opacity:0.4 },
-  commentCard: { background:'#16213E', borderRadius:10, padding:12, marginBottom:8, border:'1px solid #2C2C2A' },
-  commentText: { fontSize:13, color:'#D3D1C7', marginBottom:4 },
-  commentMeta: { fontSize:10, color:'#888780' },
+  badgeItem: { background:'#1A2340', borderRadius:10, padding:'10px 6px', textAlign:'center', border:'1px solid #534AB7' },
+  badgeLocked: { background:'#1A2340', borderRadius:10, padding:'10px 6px', textAlign:'center', border:'1px solid #3A3A5C', opacity:0.4 },
+  commentCard: { background:'#1A2340', borderRadius:10, padding:12, marginBottom:8, border:'1px solid #3A3A5C' },
+  commentText: { fontSize:13, color:'#E8E6F8', marginBottom:4 },
+  commentMeta: { fontSize:10, color:'#B0AECB' },
   nav: { position:'fixed', bottom:0, left:0, right:0, background:'#0F0F1A', borderTop:'1px solid #2C2C2A', display:'flex', padding:'10px 0', zIndex:50 },
   navItem: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, cursor:'pointer', padding:'3px 0' },
   navIcon: { fontSize:20 },
-  navLabel: { fontSize:10, color:'#888780' },
+  navLabel: { fontSize:10, color:'#B0AECB' },
 }
 
 export default function UserProfile({ user: currentUser }) {
@@ -65,7 +65,7 @@ export default function UserProfile({ user: currentUser }) {
       .then(snap => setComments(snap.docs.map(d => d.data())))
   }, [userId])
 
-  if (!profile) return <div style={{ background:'#1A1A2E', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'#888780' }}>Chargement…</div>
+  if (!profile) return <div style={{ background:'#0F0F1A', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'#B0AECB' }}>Chargement…</div>
 
   const count = profile.commentCount||0
   const level = getLevel(count)

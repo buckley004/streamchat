@@ -7,29 +7,29 @@ import Nav from '../components/Nav'
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 
 const s = {
-  page: { minHeight:'100vh', background:'#1A1A2E', color:'#FFFFFF', paddingBottom:70 },
+  page: { minHeight:'100vh', background:'#0F0F1A', color:'#FFFFFF', paddingBottom:70 },
   header: { padding:'20px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between' },
   logo: { fontSize:18, fontWeight:700 },
   avatar: { width:34, height:34, borderRadius:'50%', cursor:'pointer', border:'2px solid #534AB7', objectFit:'cover' },
   avatarFallback: { width:34, height:34, borderRadius:'50%', cursor:'pointer', border:'2px solid #534AB7', background:'#534AB7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'#fff', fontWeight:700 },
-  searchBtn: { margin:'14px 20px 8px', background:'#16213E', border:'1px solid #2C2C2A', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10, cursor:'pointer' },
-  searchTxt: { color:'#888780', fontSize:14, flex:1 },
+  searchBtn: { margin:'14px 20px 8px', background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10, cursor:'pointer' },
+  searchTxt: { color:'#B0AECB', fontSize:14, flex:1 },
   section: { padding:'14px 20px 4px' },
-  sectionTitle: { fontSize:11, fontWeight:600, color:'#888780', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 },
-  card: { background:'#16213E', borderRadius:12, padding:12, marginBottom:8, cursor:'pointer', border:'1px solid #2C2C2A', display:'flex', alignItems:'center', gap:12 },
+  sectionTitle: { fontSize:11, fontWeight:600, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 },
+  card: { background:'#1A2340', borderRadius:12, padding:12, marginBottom:8, cursor:'pointer', border:'1px solid #3A3A5C', display:'flex', alignItems:'center', gap:12 },
   cardImg: { width:46, height:46, borderRadius:8, objectFit:'cover', background:'#2C2C2A', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 },
   cardInfo: { flex:1, minWidth:0 },
   cardTitle: { fontSize:13, fontWeight:600, marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
-  cardMeta: { fontSize:11, color:'#888780' },
+  cardMeta: { fontSize:11, color:'#B0AECB' },
   badge: { background:'#1E1B4B', borderRadius:20, padding:'2px 7px', fontSize:10, color:'#9F9BE8', fontWeight:600, flexShrink:0 },
   scrollRow: { display:'flex', gap:10, overflowX:'auto', padding:'0 20px 8px', scrollbarWidth:'none' },
-  releaseCard: { flexShrink:0, width:120, background:'#16213E', borderRadius:12, overflow:'hidden', border:'1px solid #2C2C2A', cursor:'pointer' },
+  releaseCard: { flexShrink:0, width:120, background:'#1A2340', borderRadius:12, overflow:'hidden', border:'1px solid #3A3A5C', cursor:'pointer' },
   releaseImg: { width:'100%', height:68, objectFit:'cover', background:'#2C2C2A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 },
   releaseInfo: { padding:'8px' },
   releaseTitle: { fontSize:11, fontWeight:600, color:'#FFF', lineHeight:1.3, marginBottom:2 },
-  releaseMeta: { fontSize:10, color:'#888780' },
+  releaseMeta: { fontSize:10, color:'#B0AECB' },
   sectionHeader: { display:'flex', alignItems:'center', padding:'14px 20px 0' },
-  sectionHeaderTitle: { fontSize:11, fontWeight:600, color:'#888780', textTransform:'uppercase', letterSpacing:'0.08em' },
+  sectionHeaderTitle: { fontSize:11, fontWeight:600, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em' },
 }
 
 export default function Home({ user }) {
@@ -94,7 +94,7 @@ export default function Home({ user }) {
 
       <div style={{ padding:'14px 20px 4px' }}>
         <div style={{ fontSize:19, fontWeight:700, marginBottom:3 }}>{greeting}, {name} 👋</div>
-        <div style={{ fontSize:13, color:'#888780' }}>Qu'est-ce que tu regardes ce soir ?</div>
+        <div style={{ fontSize:13, color:'#B0AECB' }}>Qu'est-ce que tu regardes ce soir ?</div>
       </div>
 
       <div style={s.searchBtn} onClick={() => navigate('/search')}>
@@ -114,7 +114,7 @@ export default function Home({ user }) {
                 <div style={s.cardTitle}>{item.showName}</div>
                 <div style={s.cardMeta}>{(!item.seasonNum||item.seasonNum===0) ? 'Film' : `S${String(item.seasonNum).padStart(2,'0')}E${String(item.episodeNum).padStart(2,'0')}`}</div>
               </div>
-              <span style={{ fontSize:15, color:'#888780' }}>›</span>
+              <span style={{ fontSize:15, color:'#B0AECB' }}>›</span>
             </div>
           ))}
         </div>
@@ -123,7 +123,7 @@ export default function Home({ user }) {
       <div style={s.section}>
         <div style={s.sectionTitle}>En ce moment sur StreamChat</div>
         {recent.length === 0
-          ? <div style={{ textAlign:'center', padding:'20px', color:'#444441', fontSize:12 }}>Sois le premier à commenter !</div>
+          ? <div style={{ textAlign:'center', padding:'20px', color:'#8888A0', fontSize:12 }}>Sois le premier à commenter !</div>
           : recent.map((r,i) => (
             <div key={i} style={s.card} onClick={() => navigate(`/episode/${r.showId}/${r.seasonNum}/${r.episodeNum}`)}>
               <div style={s.cardImg}>
