@@ -6,6 +6,15 @@ import { ToastContainer, useToast } from '../components/Toast'
 import Nav from '../components/Nav'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
+
+function Heart({ filled, size=20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "#E24B4A" : "none"} stroke={filled ? "#E24B4A" : "#B0AECB"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )
+}
+
 const EMOJIS = ['❤️','😂','😮','😢','🔥']
 const BADGES = [
   { id:'first', emoji:'🎬', label:'Premier pas', threshold:1 },
@@ -198,7 +207,9 @@ export default function Episode({ user }) {
   }
 
   function goBack() {
-    if (isMovie) navigate(-1)
+    if (state?.fromShow) navigate(`/show/${showId}`)
+    else if (state?.fromSearch) navigate('/search', { state:{ query: state.searchQuery } })
+    else if (isMovie) navigate(-1)
     else navigate(`/show/${showId}`)
   }
 
@@ -288,8 +299,8 @@ export default function Episode({ user }) {
           <div style={st.showName}>{title}</div>
           <div style={st.epRow}>
             <div style={st.epName}>{epLabel}</div>
-            <button style={st.favBtn} onClick={toggleFav} title={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
-              {isFav ? '❤️' : '🤍'}
+            <button style={{ background:'none', border:'none', cursor:'pointer', padding:2, display:'flex', alignItems:'center' }} onClick={toggleFav}>
+              <Heart filled={isFav} size={20} />
             </button>
           </div>
         </div>

@@ -6,6 +6,23 @@ import Nav from '../components/Nav'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 
+// Genres à exclure (talk shows, late shows, reality, news, documentaires)
+const EXCLUDED_GENRE_IDS = [10767, 10763, 10764, 99]
+
+function formatTime(secs) {
+  if (!secs && secs !== 0) return ''
+  return `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`
+}
+
+// Cœur SVG minimaliste
+function Heart({ filled, size=20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "#E24B4A" : "none"} stroke={filled ? "#E24B4A" : "#B0AECB"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )
+}
+
 const s = {
   page: { minHeight:'100vh', background:'#0F0F1A', color:'#FFFFFF', paddingBottom:70 },
   header: { padding:'20px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between' },
@@ -17,16 +34,21 @@ const s = {
   section: { padding:'14px 20px 4px' },
   sectionTitle: { fontSize:11, fontWeight:600, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 },
   card: { background:'#1A2340', borderRadius:12, padding:12, marginBottom:8, cursor:'pointer', border:'1px solid #3A3A5C', display:'flex', alignItems:'center', gap:12 },
-  cardImg: { width:46, height:46, borderRadius:8, objectFit:'cover', background:'#2C2C2A', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 },
+  cardImg: { width:46, height:46, borderRadius:8, objectFit:'cover', background:'#2C2C4A', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 },
   cardInfo: { flex:1, minWidth:0 },
-  cardTitle: { fontSize:13, fontWeight:600, marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
+  cardTitle: { fontSize:13, fontWeight:600, marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', color:'#FFFFFF' },
   cardMeta: { fontSize:11, color:'#B0AECB' },
-  badge: { background:'#1E1B4B', borderRadius:20, padding:'2px 7px', fontSize:10, color:'#9F9BE8', fontWeight:600, flexShrink:0 },
+  badge: { background:'#1E1B4B', borderRadius:20, padding:'2px 7px', fontSize:10, color:'#C8C4F8', fontWeight:600, flexShrink:0 },
+  buzzCard: { background:'#1A2340', borderRadius:12, padding:12, marginBottom:8, cursor:'pointer', border:'1px solid #3A3A5C', display:'flex', alignItems:'center', justifyContent:'space-between' },
+  buzzLeft: { flex:1, minWidth:0 },
+  buzzTitle: { fontSize:13, fontWeight:600, color:'#FFFFFF', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
+  buzzMeta: { fontSize:11, color:'#B0AECB' },
+  buzzBadge: { background:'#1E1B4B', borderRadius:20, padding:'3px 10px', fontSize:11, color:'#C8C4F8', fontWeight:600, flexShrink:0, marginLeft:8 },
   scrollRow: { display:'flex', gap:10, overflowX:'auto', padding:'0 20px 8px', scrollbarWidth:'none' },
   releaseCard: { flexShrink:0, width:120, background:'#1A2340', borderRadius:12, overflow:'hidden', border:'1px solid #3A3A5C', cursor:'pointer' },
-  releaseImg: { width:'100%', height:68, objectFit:'cover', background:'#2C2C2A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 },
+  releaseImg: { width:'100%', height:68, objectFit:'cover', background:'#2C2C4A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 },
   releaseInfo: { padding:'8px' },
-  releaseTitle: { fontSize:11, fontWeight:600, color:'#FFF', lineHeight:1.3, marginBottom:2 },
+  releaseTitle: { fontSize:11, fontWeight:600, color:'#FFFFFF', lineHeight:1.3, marginBottom:2 },
   releaseMeta: { fontSize:10, color:'#B0AECB' },
   sectionHeader: { display:'flex', alignItems:'center', padding:'14px 20px 0' },
   sectionHeaderTitle: { fontSize:11, fontWeight:600, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em' },
@@ -34,25 +56,33 @@ const s = {
 
 export default function Home({ user }) {
   const navigate = useNavigate()
-  const [recent, setRecent] = useState([])
+  const [buzzScenes, setBuzzScenes] = useState([])
   const [inProgress, setInProgress] = useState([])
   const [newSeries, setNewSeries] = useState([])
+  const [showSeries, setShowSeries] = useState([])
   const [streamingMovies, setStreamingMovies] = useState([])
+  const [userLang, setUserLang] = useState('fr-FR')
 
+  // Scènes qui buzzent
   useEffect(() => {
-    const q = query(collection(db, 'comments'), orderBy('createdAt','desc'), limit(30))
+    const q = query(collection(db, 'comments'), orderBy('createdAt','desc'), limit(100))
     return onSnapshot(q, snap => {
-      const grouped = {}
+      const buckets = {}
       snap.docs.forEach(doc => {
         const d = doc.data()
-        const key = `${d.showId}-${d.seasonNum}-${d.episodeNum}`
-        if (!grouped[key]) grouped[key] = { ...d, count:0 }
-        grouped[key].count++
+        if (d.timestamp === null || d.timestamp === undefined) return
+        const key = `${d.showId}_${d.seasonNum}_${d.episodeNum}_${Math.floor(d.timestamp/30)}`
+        if (!buckets[key]) buckets[key] = { showId:d.showId, showName:d.showName, seasonNum:d.seasonNum, episodeNum:d.episodeNum, timestamp:d.timestamp, count:0, isMovie: d.seasonNum===0 }
+        buckets[key].count++
+        const totalReactions = Object.values(d.reactions||{}).reduce((a,b)=>a+b,0)
+        buckets[key].count += totalReactions
       })
-      setRecent(Object.values(grouped).slice(0,5))
+      const sorted = Object.values(buckets).sort((a,b)=>b.count-a.count).slice(0,5)
+      setBuzzScenes(sorted)
     })
   }, [])
 
+  // Mes séries en cours
   useEffect(() => {
     if (!user) return
     const q = query(collection(db, 'userComments'), where('userId','==',user.uid), orderBy('createdAt','desc'), limit(20))
@@ -66,12 +96,18 @@ export default function Home({ user }) {
     })
   }, [user])
 
+  // Sorties séries + shows + films streaming
   useEffect(() => {
     Promise.all([
       fetch(`https://api.themoviedb.org/3/tv/on_the_air?api_key=${TMDB_KEY}&language=fr-FR`).then(r=>r.json()),
-      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=fr-FR&with_watch_monetization_types=flatrate`).then(r=>r.json()),
+      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=fr-FR`).then(r=>r.json()),
     ]).then(([tv, movies]) => {
-      setNewSeries((tv.results||[]).slice(0,8))
+      const allTV = tv.results || []
+      // Séparer séries scripted et shows
+      const scripted = allTV.filter(s => !s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g))).slice(0,8)
+      const shows = allTV.filter(s => s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g))).slice(0,8)
+      setNewSeries(scripted)
+      setShowSeries(shows)
       setStreamingMovies((movies.results||[]).slice(0,8))
     })
   }, [])
@@ -120,23 +156,23 @@ export default function Home({ user }) {
         </div>
       )}
 
-      <div style={s.section}>
-        <div style={s.sectionTitle}>En ce moment sur StreamChat</div>
-        {recent.length === 0
-          ? <div style={{ textAlign:'center', padding:'20px', color:'#8888A0', fontSize:12 }}>Sois le premier à commenter !</div>
-          : recent.map((r,i) => (
-            <div key={i} style={s.card} onClick={() => navigate(`/episode/${r.showId}/${r.seasonNum}/${r.episodeNum}`)}>
-              <div style={s.cardImg}>
-                {r.showPoster ? <img src={`https://image.tmdb.org/t/p/w92${r.showPoster}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '📺'}
+      {buzzScenes.length > 0 && (
+        <div style={s.section}>
+          <div style={s.sectionTitle}>🔥 Scènes qui buzzent</div>
+          {buzzScenes.map((scene, i) => (
+            <div key={i} style={s.buzzCard} onClick={() => navigate(`/episode/${scene.showId}/${scene.seasonNum}/${scene.episodeNum}`)}>
+              <div style={s.buzzLeft}>
+                <div style={s.buzzTitle}>{scene.showName}</div>
+                <div style={s.buzzMeta}>
+                  {scene.isMovie ? 'Film' : `S${String(scene.seasonNum).padStart(2,'0')}E${String(scene.episodeNum).padStart(2,'0')}`}
+                  {scene.timestamp !== undefined && ` · ${formatTime(scene.timestamp)}`}
+                </div>
               </div>
-              <div style={s.cardInfo}>
-                <div style={s.cardTitle}>{r.showName||'Série'}</div>
-                <div style={s.cardMeta}>{(!r.seasonNum||r.seasonNum===0)?'Film':`S${String(r.seasonNum).padStart(2,'0')}E${String(r.episodeNum).padStart(2,'0')}`}</div>
-              </div>
-              <div style={s.badge}>{r.count} 💬</div>
+              <div style={s.buzzBadge}>🔥 {scene.count} réactions</div>
             </div>
           ))}
-      </div>
+        </div>
+      )}
 
       {newSeries.length > 0 && (
         <>
@@ -146,6 +182,22 @@ export default function Home({ user }) {
               <div key={show.id} style={s.releaseCard} onClick={() => navigate('/search', { state:{ autoSelect:{ ...show, media_type:'tv' } } })}>
                 <div style={s.releaseImg}>
                   {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '📺'}
+                </div>
+                <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {showSeries.length > 0 && (
+        <>
+          <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>🎤 Shows & Divertissement</div></div>
+          <div style={{ ...s.scrollRow, marginTop:10 }}>
+            {showSeries.map(show => (
+              <div key={show.id} style={s.releaseCard} onClick={() => navigate('/search', { state:{ autoSelect:{ ...show, media_type:'tv' } } })}>
+                <div style={s.releaseImg}>
+                  {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '🎤'}
                 </div>
                 <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
               </div>

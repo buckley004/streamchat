@@ -59,7 +59,7 @@ const s = {
   bannerGrid: { display:'flex', gap:6, flexWrap:'wrap', marginBottom:8 },
   bannerOption: { width:36, height:24, borderRadius:6, cursor:'pointer', border:'2px solid transparent' },
   bannerActive: { border:'2px solid #9F9BE8' },
-  bannerImgOption: { width:72, height:40, borderRadius:6, cursor:'pointer', border:'2px solid transparent', objectFit:'cover' },
+  bannerImgOption: { width:72, height:44, borderRadius:6, cursor:'pointer', border:'2px solid transparent', objectFit:'cover', display:'block' },
   bannerImgActive: { border:'2px solid #9F9BE8' },
   select: { width:'100%', background:'#0F0F1A', border:'1px solid #3A3A5C', borderRadius:10, padding:'10px 12px', color:'#FFFFFF', fontSize:13, outline:'none', marginBottom:4, boxSizing:'border-box' },
   modalBtn: { background:'#534AB7', border:'none', borderRadius:10, padding:'11px 0', color:'#FFF', fontSize:13, fontWeight:600, cursor:'pointer', width:'100%', marginBottom:8, marginTop:12 },
@@ -252,18 +252,23 @@ export default function Profile({ user }) {
             <span style={{ color:'#FFFFFF', fontWeight:600 }}>Progression</span>
             <span style={{ color:'#C0BEDE' }}>{count} commentaire{count>1?'s':''}</span>
           </div>
-          <div style={{ display:'flex', gap:3, marginBottom:8 }}>
-            {LEVELS.map(l => {
-              const reached = count >= l.min
-              return (
-                <div key={l.label} style={{ flex:1, textAlign:'center' }}>
-                  <div style={{ height:4, borderRadius:2, background: reached ? '#534AB7' : '#2C2C4A', marginBottom:3 }} />
-                  <div style={{ fontSize:8, color: reached ? '#C8C4F8' : '#444461' }}>{l.label}</div>
-                </div>
-              )
-            })}
-          </div>
-          {nextBadge && <div style={{ fontSize:11, color:'#C0BEDE' }}>Prochain : {nextBadge.emoji} {nextBadge.label} — {nextBadge.desc}</div>}
+          {nextBadge && (
+            <>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginBottom:4 }}>
+                <span style={{ color:'#C0BEDE' }}>{level.label}</span>
+                <span style={{ color:'#C0BEDE' }}>{nextBadge.label}</span>
+              </div>
+              <div style={s.progressBar}>
+                <div style={{ ...s.progressFill, width:`${progress}%` }}/>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#8888A0', marginTop:3 }}>
+                <span>{count} commentaires</span>
+                <span>Objectif : {nextThreshold}</span>
+              </div>
+              <div style={{ fontSize:11, color:'#C0BEDE', marginTop:6 }}>Prochain badge : {nextBadge.emoji} {nextBadge.label} — {nextBadge.desc}</div>
+            </>
+          )}
+          {!nextBadge && <div style={{ fontSize:12, color:'#C8C4F8', textAlign:'center' }}>🏆 Tu as atteint le niveau maximum !</div>}
         </div>
       </div>
 
@@ -305,9 +310,10 @@ export default function Profile({ user }) {
             {favBanners.length > 0 ? (
               <div style={{ display:'flex', gap:6, overflowX:'auto', marginBottom:8, paddingBottom:4 }}>
                 {favBanners.map((b,i) => (
-                  <img key={i} src={b.url} alt={b.name}
-                    style={{ ...s.bannerImgOption, ...(bannerImg===b.url?s.bannerImgActive:{}) }}
-                    onClick={() => setBannerImg(bannerImg===b.url?'':b.url)} />
+                  <div key={i} style={{ width:72, height:44, borderRadius:6, overflow:'hidden', cursor:'pointer', border: bannerImg===b.url ? '2px solid #9F9BE8' : '2px solid transparent', flexShrink:0 }}
+                    onClick={() => setBannerImg(bannerImg===b.url?'':b.url)}>
+                    <img src={b.url} alt={b.name} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                  </div>
                 ))}
               </div>
             ) : <div style={{ fontSize:11, color:'#888780', marginBottom:8 }}>Ajoute des favoris pour voir leurs images ici</div>}

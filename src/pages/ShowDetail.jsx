@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Nav from '../components/Nav'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 
@@ -25,6 +25,7 @@ const s = {
 export default function ShowDetail({ user }) {
   const { showId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [show, setShow] = useState(null)
   const [seasons, setSeasons] = useState([])
   const [openSeason, setOpenSeason] = useState(null)
@@ -57,7 +58,7 @@ export default function ShowDetail({ user }) {
         : <div style={{ ...s.banner, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40 }}>📺</div>}
 
       <div style={s.header}>
-        <button style={s.back} onClick={() => navigate(-1)}>←</button>
+        <button style={s.back} onClick={() => { if (location?.state?.fromSearch) navigate('/search', { state:{ query: location?.state?.searchQuery } }); else navigate('/') }}>←</button>
         <span style={s.title}>{show.name}</span>
       </div>
 
@@ -75,7 +76,7 @@ export default function ShowDetail({ user }) {
               <div style={{ paddingLeft:12 }}>
                 {(episodes[season.season_number]||[]).map(ep => (
                   <button key={ep.episode_number} style={s.epBtn}
-                    onClick={() => navigate(`/episode/${showId}/${season.season_number}/${ep.episode_number}`, { state:{ show, episode:ep, fromShow:true } })}>
+                    onClick={() => navigate(`/episode/${showId}/${season.season_number}/${ep.episode_number}`, { state:{ show, episode:ep, fromShow:true, searchQuery: location?.state?.searchQuery, fromSearch: location?.state?.fromSearch } })}>
                     <span style={s.epNum}>E{String(ep.episode_number).padStart(2,'0')}</span>
                     <span>{ep.name}</span>
                   </button>
