@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-const steps = [
+const STEPS = [
   {
     emoji: '🎬',
     title: 'Commente tes séries et films en temps réel',
@@ -18,37 +18,34 @@ const steps = [
   },
 ]
 
-const s = {
-  page: { minHeight:'100vh', background:'#1A1A2E', color:'#FFF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'60px 32px 48px' },
-  emoji: { fontSize:72, marginBottom:32, display:'block', textAlign:'center' },
-  title: { fontSize:26, fontWeight:700, textAlign:'center', marginBottom:16, lineHeight:1.3 },
-  desc: { fontSize:16, color:'#888780', textAlign:'center', lineHeight:1.7, maxWidth:300 },
-  dots: { display:'flex', gap:8, justifyContent:'center', margin:'32px 0' },
-  dot: { width:8, height:8, borderRadius:'50%', background:'#2C2C2A', transition:'all 0.2s' },
-  dotActive: { background:'#534AB7', width:24, borderRadius:4 },
-  btn: { background:'#534AB7', border:'none', borderRadius:14, padding:'16px 0', color:'#FFF', fontSize:16, fontWeight:700, cursor:'pointer', width:'100%', maxWidth:320 },
-  skip: { marginTop:16, color:'#444441', fontSize:13, cursor:'pointer', background:'none', border:'none' },
-}
-
 export default function Onboarding({ onDone }) {
   const [step, setStep] = useState(0)
-  const current = steps[step]
-  const isLast = step === steps.length - 1
+  const current = STEPS[step]
+  const isLast = step === STEPS.length - 1
+
   return (
-    <div style={s.page}>
+    <div style={{ minHeight:'100vh', background:'#0F0F1A', color:'#FFF', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'60px 32px 48px' }}>
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}>
-        <span style={s.emoji}>{current.emoji}</span>
-        <h1 style={s.title}>{current.title}</h1>
-        <p style={s.desc}>{current.desc}</p>
-        <div style={s.dots}>
-          {steps.map((_, i) => <div key={i} style={{ ...s.dot, ...(i===step ? s.dotActive : {}) }} />)}
+        <span style={{ fontSize:72, marginBottom:32, display:'block', textAlign:'center' }}>{current.emoji}</span>
+        <h1 style={{ fontSize:26, fontWeight:700, textAlign:'center', marginBottom:16, lineHeight:1.3 }}>{current.title}</h1>
+        <p style={{ fontSize:16, color:'#B0AECB', textAlign:'center', lineHeight:1.7, maxWidth:300 }}>{current.desc}</p>
+        <div style={{ display:'flex', gap:8, justifyContent:'center', margin:'32px 0' }}>
+          {STEPS.map((_, i) => (
+            <div key={i} style={{ height:8, borderRadius:4, background: i === step ? '#534AB7' : '#2C2C4A', width: i === step ? 24 : 8, transition:'all 0.2s' }} />
+          ))}
         </div>
       </div>
       <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center' }}>
-        <button style={s.btn} onClick={() => isLast ? onDone() : setStep(s => s+1)}>
+        <button
+          style={{ background:'#534AB7', border:'none', borderRadius:14, padding:'16px 0', color:'#FFF', fontSize:16, fontWeight:700, cursor:'pointer', width:'100%', maxWidth:320 }}
+          onClick={() => isLast ? onDone() : setStep(s => s + 1)}>
           {isLast ? 'C\'est parti !' : 'Suivant'}
         </button>
-        {!isLast && <button style={s.skip} onClick={onDone}>Passer</button>}
+        {!isLast && (
+          <button style={{ marginTop:16, color:'#8888A0', fontSize:13, cursor:'pointer', background:'none', border:'none' }} onClick={onDone}>
+            Passer
+          </button>
+        )}
       </div>
     </div>
   )

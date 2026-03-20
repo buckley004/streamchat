@@ -5,27 +5,21 @@ export default function Nav() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
-  const s = {
-    nav: { position:'fixed', bottom:0, left:0, right:0, background:'#0F0F1A', borderTop:'1px solid #2C2C2A', display:'flex', padding:'10px 0', zIndex:50 },
-    item: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, cursor:'pointer', padding:'3px 0' },
-    icon: { fontSize:22 },
-    label: { fontSize:10, color:'#888780' },
-    active: { color:'#534AB7' },
-  }
-
-  const isHome = pathname === '/'
-  const isProfile = pathname === '/profile'
+  const items = [
+    { path: '/', icon: '🏠', label: 'Accueil' },
+    { path: '/profile', icon: '👤', label: 'Profil' },
+  ]
 
   return (
-    <nav style={s.nav}>
-      <div style={s.item} onClick={() => navigate('/')}>
-        <span style={s.icon}>🏠</span>
-        <span style={{ ...s.label, ...(isHome ? s.active : {}) }}>Accueil</span>
-      </div>
-      <div style={s.item} onClick={() => navigate('/profile')}>
-        <span style={s.icon}>👤</span>
-        <span style={{ ...s.label, ...(isProfile ? s.active : {}) }}>Profil</span>
-      </div>
+    <nav style={{ position:'fixed', bottom:0, left:0, right:0, background:'#0A0A14', borderTop:'1px solid #3A3A5C', display:'flex', padding:'10px 0', zIndex:50 }}>
+      {items.map(item => (
+        <div key={item.path}
+          style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, cursor:'pointer', padding:'3px 0' }}
+          onClick={() => navigate(item.path)}>
+          <span style={{ fontSize:22 }}>{item.icon}</span>
+          <span style={{ fontSize:10, color: pathname === item.path ? '#534AB7' : '#B0AECB' }}>{item.label}</span>
+        </div>
+      ))}
     </nav>
   )
 }
