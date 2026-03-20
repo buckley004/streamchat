@@ -108,8 +108,8 @@ export default function Home({ user }) {
   // Sorties séries + shows + films streaming
   useEffect(() => {
     Promise.all([
-      fetch(`https://api.themoviedb.org/3/tv/on_the_air?api_key=${TMDB_KEY}&language=fr-FR&region=FR`).then(r=>r.json()),
-      fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${TMDB_KEY}&language=fr-FR&region=FR&with_original_language=fr|en`).then(r=>r.json()),
+      fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&language=fr-FR&with_original_language=fr|en&sort_by=popularity.desc&page=1`).then(r=>r.json()),
+      fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&language=fr-FR&with_original_language=fr|en&sort_by=popularity.desc&with_watch_monetization_types=flatrate`).then(r=>r.json()),
     ]).then(([tv, movies]) => {
       const allTV = tv.results || []
       // Séparer séries scripted et shows

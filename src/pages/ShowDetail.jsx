@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import Nav from '../components/Nav'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '../firebase'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 
@@ -22,14 +24,32 @@ const s = {
   navLabel: { fontSize:10, color:'#B0AECB' },
 }
 
+
+function Heart({ filled, size=20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "#B0AECB" : "none"} stroke="#B0AECB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )
+}
+
 export default function ShowDetail({ user }) {
   const { showId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const [show, setShow] = useState(null)
   const [seasons, setSeasons] = useState([])
+  const [isFav, setIsFav] = useState(false)
+  const [favCount, setFavCount] = useState(0)
   const [openSeason, setOpenSeason] = useState(null)
   const [episodes, setEpisodes] = useState({})
+
+  useEffect(() => {
+    if (user) {
+      getDoc(doc(db, 'favorites', `${user.uid}_${showId}`)).then(snap => setIsFav(snap.exists() && !snap.data()?.deleted))
+      getDoc(doc(db, 'favoriteCounts', showId)).then(snap => setFavCount(snap.exists() ? snap.data().count||0 : 0))
+    }
+  }, [showId, user?.uid])
 
   useEffect(() => {
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${TMDB_KEY}&language=fr-FR`)
@@ -49,6 +69,21 @@ export default function ShowDetail({ user }) {
     }
   }
 
+  async function toggleFav() {
+    if (!user) return
+    const favRef = doc(db, 'favorites', `${user.uid}_${showId}`)
+    const countRef = doc(db, 'favoriteCounts', showId)
+    if (isFav) {
+      await setDoc(favRef, { deleted:true }, { merge:true })
+      await setDoc(countRef, { count: Math.max(0, favCount-1) }, { merge:true })
+      setFavCount(c => Math.max(0,c-1)); setIsFav(false)
+    } else {
+      await setDoc(favRef, { userId:user.uid, showId, showName:show?.name||'', showPoster:show?.poster_path||'', isMovie:false, createdAt:serverTimestamp() })
+      await setDoc(countRef, { count: favCount+1 }, { merge:true })
+      setFavCount(c => c+1); setIsFav(true)
+    }
+  }
+
   if (!show) return <div style={{ background:'#0F0F1A', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'#B0AECB' }}>Chargement…</div>
 
   return (
@@ -60,6 +95,12 @@ export default function ShowDetail({ user }) {
       <div style={s.header}>
         <button style={s.back} onClick={() => { if (location?.state?.fromSearch) navigate('/search', { state:{ query: location?.state?.searchQuery } }); else navigate('/') }}>←</button>
         <span style={s.title}>{show.name}</span>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:11, color:'#B0AECB' }}>{favCount} ❤️</span>
+          <button style={{ background:'none', border:'none', cursor:'pointer', padding:4 }} onClick={toggleFav}>
+            <Heart filled={isFav} size={22} />
+          </button>
+        </div>
       </div>
 
       {show.overview && <div style={s.synopsis}>{show.overview}</div>}

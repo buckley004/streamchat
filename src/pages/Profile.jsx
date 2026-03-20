@@ -92,6 +92,7 @@ export default function Profile({ user }) {
   const [stats, setStats] = useState({ comments:0, movieFavs:0, serieFavs:0, reactions:0 })
   const [autoTags, setAutoTags] = useState([])
   const [comments, setComments] = useState([])
+  const [favsList, setFavsList] = useState([])
   const [favBanners, setFavBanners] = useState([])
   const fileInputRef = useRef(null)
 
@@ -141,6 +142,7 @@ export default function Profile({ user }) {
       const favs = snap.docs.map(d => d.data()).filter(d => !d.deleted)
       const movieFavs = favs.filter(f => f.isMovie).length
       const serieFavs = favs.filter(f => !f.isMovie).length
+      setFavsList(favs)
       const banners = favs.filter(f => f.showPoster).map(f => ({
         url: `https://image.tmdb.org/t/p/w780${f.showPoster}`,
         name: f.showName
@@ -253,12 +255,33 @@ export default function Profile({ user }) {
           </div>
           <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
             {activeList === 'comments' && comments.map((c,i) => (
-              <div key={i} style={{ background:'#1A2340', borderRadius:10, padding:12, marginBottom:8, border:'1px solid #3A3A5C' }}>
-                <div style={{ fontSize:11, color:'#B0AECB', marginBottom:4 }}>{c.showName} {c.seasonNum > 0 ? `S${String(c.seasonNum).padStart(2,'0')}E${String(c.episodeNum).padStart(2,'0')}` : ''}</div>
-                <div style={{ fontSize:13, color:'#FFFFFF' }}>{c.text}</div>
+              <div key={i} style={{ background:'#1A2340', borderRadius:10, padding:12, marginBottom:8, border:'1px solid #3A3A5C', cursor:'pointer' }}
+                onClick={() => { setActiveList(null); navigate(`/episode/${c.showId}/${c.seasonNum}/${c.episodeNum}`) }}>
+                <div style={{ fontSize:11, color:'#B0AECB', marginBottom:4 }}>{c.showName} {c.seasonNum > 0 ? `S${String(c.seasonNum).padStart(2,'0')}E${String(c.episodeNum).padStart(2,'0')}` : 'Film'}</div>
+                <div style={{ fontSize:13, color:'#FFFFFF', marginBottom:4 }}>{c.text}</div>
+                <div style={{ fontSize:10, color:'#8888A0' }}>{c.timestamp != null ? `⏱ ${Math.floor(c.timestamp/60)}:${String(c.timestamp%60).padStart(2,'0')}` : ''}</div>
               </div>
             ))}
-            {activeList !== 'comments' && <div style={{ textAlign:'center', padding:'40px', color:'#8888A0', fontSize:13 }}>Fonctionnalité à venir</div>}
+            {(activeList === 'movieFavs' || activeList === 'serieFavs') && favsList.filter(f => activeList === 'movieFavs' ? f.isMovie : !f.isMovie).map((f,i) => (
+              <div key={i} style={{ background:'#1A2340', borderRadius:10, padding:12, marginBottom:8, border:'1px solid #3A3A5C', cursor:'pointer', display:'flex', alignItems:'center', gap:12 }}
+                onClick={() => { setActiveList(null); if (f.isMovie) navigate(`/episode/${f.showId}/0/0`); else navigate(`/show/${f.showId}`) }}>
+                {f.showPoster && <img src={`https://image.tmdb.org/t/p/w92${f.showPoster}`} style={{ width:40, height:40, borderRadius:8, objectFit:'cover' }} alt="" />}
+                <div style={{ fontSize:13, color:'#FFFFFF', fontWeight:600 }}>{f.showName}</div>
+                <span style={{ fontSize:12, color:'#B0AECB', marginLeft:'auto' }}>›</span>
+              </div>
+            ))}
+            {activeList === 'reactions' && comments.filter(c => Object.values(c.reactions||{}).reduce((a,b)=>a+b,0) > 0).map((c,i) => (
+              <div key={i} style={{ background:'#1A2340', borderRadius:10, padding:12, marginBottom:8, border:'1px solid #3A3A5C', cursor:'pointer' }}
+                onClick={() => { setActiveList(null); navigate(`/episode/${c.showId}/${c.seasonNum}/${c.episodeNum}`) }}>
+                <div style={{ fontSize:11, color:'#B0AECB', marginBottom:4 }}>{c.showName}</div>
+                <div style={{ fontSize:13, color:'#FFFFFF', marginBottom:6 }}>{c.text}</div>
+                <div style={{ display:'flex', gap:6 }}>
+                  {Object.entries(c.reactions||{}).filter(([,v])=>v>0).map(([k,v]) => (
+                    <span key={k} style={{ background:'#1E1B4B', borderRadius:20, padding:'2px 8px', fontSize:11, color:'#C8C4F8' }}>{k} {v}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -335,11 +358,19 @@ export default function Profile({ user }) {
             <label style={s.label}>Photo de profil</label>
             {rawPhoto ? (
               <div style={{ marginBottom:10 }}>
-                <div style={{ position:'relative', width:160, height:160, margin:'0 auto 8px', borderRadius:'50%', overflow:'hidden', background:'#0F0F1A', cursor:'move', userSelect:'none' }}
-                  onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onMouseLeave={onCropMouseUp}
-                  onTouchStart={onCropTouchStart} onTouchMove={onCropTouchMove} onTouchEnd={onCropMouseUp}>
-                  <img src={rawPhoto} style={{ position:'absolute', width:`${100*cropScale}%`, height:`${100*cropScale}%`, objectFit:'cover', left:`calc(50% + ${cropOffset.x}px)`, top:`calc(50% + ${cropOffset.y}px)`, transform:'translate(-50%,-50%)' }} alt="" draggable={false} />
-                  <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid #534AB7', pointerEvents:'none' }} />
+                <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:8 }}>
+                  <div style={{ position:'relative', width:140, height:140, borderRadius:'50%', overflow:'hidden', background:'#0F0F1A', cursor:'move', userSelect:'none', flexShrink:0 }}
+                    onMouseDown={onCropMouseDown} onMouseMove={onCropMouseMove} onMouseUp={onCropMouseUp} onMouseLeave={onCropMouseUp}
+                    onTouchStart={onCropTouchStart} onTouchMove={onCropTouchMove} onTouchEnd={onCropMouseUp}>
+                    <img src={rawPhoto} style={{ position:'absolute', width:`${100*cropScale}%`, height:`${100*cropScale}%`, objectFit:'cover', left:`calc(50% + ${cropOffset.x}px)`, top:`calc(50% + ${cropOffset.y}px)`, transform:'translate(-50%,-50%)' }} alt="" draggable={false} />
+                    <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid #534AB7', pointerEvents:'none' }} />
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:11, color:'#B0AECB', marginBottom:6 }}>Glisse pour repositionner</div>
+                    <div style={{ fontSize:11, color:'#B0AECB', marginBottom:4 }}>Zoom</div>
+                    <input type="range" min="0.5" max="3" step="0.05" value={cropScale} style={{ width:'100%', accentColor:'#534AB7' }} onChange={e => setCropScale(parseFloat(e.target.value))} />
+                    <div style={{ fontSize:10, color:'#8888A0', marginTop:4 }}>×{cropScale.toFixed(1)}</div>
+                  </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
                   <span style={{ fontSize:10, color:'#B0AECB' }}>Zoom</span>
@@ -390,6 +421,7 @@ export default function Profile({ user }) {
 
             {(bannerImg) && (
               <div style={{ marginBottom:8 }}>
+                <div style={{ width:'100%', height:60, borderRadius:8, backgroundImage:`url(${bannerImg})`, backgroundSize:'cover', backgroundPosition:`center ${bannerPosY}%`, marginBottom:6 }} />
                 <label style={s.label}>Position verticale de l'image</label>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <span style={{ fontSize:10, color:'#8888A0' }}>Haut</span>
