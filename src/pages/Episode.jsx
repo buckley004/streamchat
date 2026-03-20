@@ -58,6 +58,7 @@ export default function Episode({ user }) {
   const [isFav, setIsFav] = useState(false)
   const [favCount, setFavCount] = useState(0)
   const [revealed, setRevealed] = useState(false)
+  const [revealToggleLabel, setRevealToggleLabel] = useState('Révéler')
   const [sliderTime, setSliderTime] = useState(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [pendingComments, setPendingComments] = useState([])
@@ -154,7 +155,7 @@ export default function Episode({ user }) {
     const commentData = {
       text: '', gifUrl,
       userId: user.uid, userName: user.displayName||'Anonyme',
-      userPhoto: user.photoURL||'', timestamp: running ? elapsed : null,
+      userPhoto: user.photoURL||'', timestamp: running ? elapsed : null,  // Toujours le timer
       showId, showName: show?.name||show?.title||'',
       showPoster: show?.poster_path||'',
       seasonNum: parseInt(seasonNum), episodeNum: parseInt(episodeNum),
@@ -192,7 +193,7 @@ export default function Episode({ user }) {
       text: text.trim(), userId: user.uid,
       userName: user.displayName||'Anonyme', userPhoto: user.photoURL||'',
       userBadge: topBadge ? `${topBadge.emoji} ${topBadge.label}` : null,
-      timestamp: running ? elapsed : null,
+      timestamp: running ? elapsed : null,  // Toujours le timer, jamais le slider
       showId, showName: show?.name||show?.title||'',
       showPoster: show?.poster_path||'',
       seasonNum: parseInt(seasonNum), episodeNum: parseInt(episodeNum),
@@ -254,7 +255,7 @@ export default function Episode({ user }) {
   const synopsis = show?.overview||episode?.overview||''
 
   const st = {
-    page: { height:'100vh', background:'#0F0F1A', color:'#FFFFFF', display:'flex', flexDirection:'column', overflow:'hidden', paddingBottom:60 },
+    page: { height:'100dvh', maxWidth:'100vw', overflowX:'hidden', background:'#0F0F1A', color:'#FFFFFF', display:'flex', flexDirection:'column', overflow:'hidden', paddingBottom:60 },
     banner: { width:'100%', height:120, objectFit:'cover', background:'#1A2340', flexShrink:0 },
     bannerPlaceholder: { width:'100%', height:70, background:'#1A2340', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 },
     header: { padding:'8px 14px', display:'flex', alignItems:'center', gap:8, borderBottom:'1px solid #2C2C2A', flexShrink:0 },
@@ -279,7 +280,7 @@ export default function Episode({ user }) {
     heatmapLabel: { fontSize:10, color:'#B0AECB', marginBottom:4 },
     slider: { width:'100%', accentColor:'#534AB7' },
     sliderRow: { display:'flex', justifyContent:'space-between', fontSize:9, color:'#8888A0', marginTop:2 },
-    revealBanner: { background:'rgba(26,26,46,0.95)', borderBottom:'1px solid #2C2C2A', padding:'8px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 },
+    revealBanner: { background:'#16213E', borderBottom:'1px solid #3A3A5C', padding:'7px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 },
     revealBtn: { background:'#534AB7', border:'none', borderRadius:8, padding:'6px 14px', color:'#FFF', fontSize:11, fontWeight:600, cursor:'pointer' },
     filter: { padding:'5px 14px', display:'flex', gap:5, overflowX:'auto', flexShrink:0, borderBottom:'1px solid #2C2C2A' },
     filterBtn: { background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:20, padding:'3px 9px', color:'#B0AECB', fontSize:10, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 },
@@ -289,7 +290,7 @@ export default function Episode({ user }) {
     avatar: { width:26, height:26, borderRadius:'50%', flexShrink:0, background:'#2C2C2A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, overflow:'hidden', cursor:'pointer' },
     bubble: { flex:1, background:'#1A2340', borderRadius:'4px 10px 10px 10px', padding:'7px 10px', border:'1px solid #3A3A5C' },
     bubbleOwn: { background:'#1E1B4B', border:'1px solid #534AB7' },
-    blurred: { filter:'blur(5px)', userSelect:'none', pointerEvents:'none' },
+    blurred: { filter:'blur(8px)', userSelect:'none', pointerEvents:'none', opacity:0.7 },
     bubbleTop: { display:'flex', alignItems:'center', gap:4, marginBottom:3, flexWrap:'wrap' },
     username: { fontSize:11, fontWeight:600, cursor:'pointer' },
     badgePill: { fontSize:9, background:'#1E1B4B', borderRadius:8, padding:'1px 4px', color:'#9F9BE8' },
@@ -418,7 +419,7 @@ export default function Episode({ user }) {
               {c.replyTo && <div style={st.replyQuote}>"{c.replyTo.text}"</div>}
               {c.gifUrl && <img src={c.gifUrl} alt="gif" style={{ maxWidth:'100%', borderRadius:8, marginBottom:4 }} />}
               {c.text && <div style={st.text}>{c.text}</div>}
-              <div style={st.actions}>
+              <div style={{ ...st.actions, ...(revealed ? {} : { filter:'blur(8px)', pointerEvents:'none' }) }}>
                 {EMOJIS.map(emoji => {
                   const cnt = c.reactions?.[emoji]||0
                   if (cnt===0) return null
