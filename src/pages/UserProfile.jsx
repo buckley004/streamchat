@@ -74,7 +74,7 @@ export default function UserProfile({ user: currentUser }) {
   return (
     <div style={s.page}>
       <div style={s.header}>
-        <button style={s.back} onClick={() => navigate(-1)}>←</button>
+        <button style={s.back} onClick={() => navigate(-1)}>‹</button>
         {isOwn && <span style={{ fontSize:13, color:'#9F9BE8', cursor:'pointer' }} onClick={() => navigate('/profile')}>Modifier mon profil →</span>}
       </div>
 

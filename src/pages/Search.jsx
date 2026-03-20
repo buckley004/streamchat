@@ -140,9 +140,7 @@ export default function Search({ user }) {
     setOpenSeason(null)
     setEpisodes({})
     if (show.media_type === 'tv') {
-      const r = await fetch(`https://api.themoviedb.org/3/tv/${show.id}?api_key=${TMDB_KEY}&language=fr-FR`)
-      const d = await r.json()
-      setSeasons((d.seasons || []).filter(s => s.season_number > 0))
+      navigate(`/show/${show.id}`, { state: { fromSearch: true, searchQuery: queryText } })
     } else {
       navigate(`/episode/${show.id}/0/0`, { state: { show } })
     }
@@ -167,7 +165,7 @@ export default function Search({ user }) {
   if (selected && selected.media_type === 'tv') return (
     <div style={s.page}>
       <div style={s.header}>
-        <button style={s.back} onClick={() => { setSelected(null); setSeasons([]); setOpenSeason(null) }}>←</button>
+        <button style={s.back} onClick={() => { setSelected(null); setSeasons([]); setOpenSeason(null) }}>‹</button>
         <span style={s.title}>{selected.name || selected.title}</span>
       </div>
       <div style={{ padding:'0 20px' }}>
@@ -198,7 +196,7 @@ export default function Search({ user }) {
   return (
     <div style={s.page}>
       <div style={s.header}>
-        <button style={s.back} onClick={() => navigate('/')}>←</button>
+        <button style={s.back} onClick={() => navigate('/')}>‹</button>
         <span style={s.title}>Rechercher</span>
       </div>
       <div style={s.searchWrap}>

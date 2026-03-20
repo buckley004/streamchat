@@ -65,6 +65,7 @@ export default function Episode({ user }) {
   const [showGif, setShowGif] = useState(false)
   const [gifQuery, setGifQuery] = useState('')
   const [gifs, setGifs] = useState([])
+  const [gifLoading, setGifLoading] = useState(false)
 
   // Réseau
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -219,8 +220,14 @@ export default function Episode({ user }) {
     setReplyTo(null)
   }
 
-  // Réactions
+  const reactionLock = useRef({})
+
+  // Réactions anti-cumul
   async function addReaction(commentId, emoji) {
+    const key = `${commentId}_${emoji}`
+    if (reactionLock.current[key]) return
+    reactionLock.current[key] = true
+    setTimeout(() => { delete reactionLock.current[key] }, 1000)
     const colId = `${showId}_s${seasonNum}_e${episodeNum}`
     await updateDoc(doc(db, 'comments', colId, 'messages', commentId), {
       [`reactions.${emoji}`]: increment(1)
@@ -241,6 +248,19 @@ export default function Episode({ user }) {
     }
     if (navigator.share) navigator.share({ text: msg })
     else { navigator.clipboard.writeText(msg); showToast('Lien copié !', '📋') }
+  }
+
+  // Ouvrir modal GIF avec pré-chargement
+  async function openGif() {
+    setShowGif(true)
+    if (gifs.length === 0) {
+      const defaultQuery = show?.name || show?.title || 'reaction'
+      setGifLoading(true)
+      const r = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh&q=${encodeURIComponent(defaultQuery)}&limit=12&rating=g`)
+      const d = await r.json()
+      setGifs(d.data || [])
+      setGifLoading(false)
+    }
   }
 
   // GIF
@@ -285,7 +305,7 @@ export default function Episode({ user }) {
   const synopsis = show?.overview || episode?.overview || ''
 
   return (
-    <div style={{ height:'100dvh', maxWidth:'100vw', background:'#0F0F1A', color:'#FFF', display:'flex', flexDirection:'column', overflow:'hidden', paddingBottom:60 }}>
+    <div style={{ height:'100dvh', maxWidth:'100vw', background:'#0F0F1A', color:'#FFF', display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
       <ToastContainer toasts={toasts} />
 
       {/* Modal GIF plein écran */}
@@ -300,6 +320,7 @@ export default function Episode({ user }) {
             placeholder="Rechercher un GIF…"
             value={gifQuery}
             autoFocus
+            placeholder={`Rechercher un GIF${show?.name ? ` (${show.name})` : '…'}`}
             onChange={e => { setGifQuery(e.target.value); searchGifs(e.target.value) }}
           />
           <div style={{ flex:1, display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, overflowY:'auto' }}>
@@ -308,9 +329,8 @@ export default function Episode({ user }) {
                 style={{ width:'100%', borderRadius:8, cursor:'pointer', objectFit:'cover', height:90 }}
                 onClick={() => sendGif(g.images.original.url)} alt="" />
             ))}
-            {gifs.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#8888A0', padding:40, fontSize:13 }}>
-              {gifQuery ? 'Aucun résultat' : 'Tape un mot pour rechercher'}
-            </div>}
+            {gifLoading && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#8888A0', padding:40, fontSize:13 }}>Chargement…</div>}
+            {!gifLoading && gifs.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', color:'#8888A0', padding:40, fontSize:13 }}>Aucun résultat</div>}
           </div>
         </div>
       )}
@@ -409,114 +429,112 @@ export default function Episode({ user }) {
         </>
       )}
 
-      {/* Bannière révéler — toujours visible */}
-      <div style={{ background:'#16213E', borderBottom:'1px solid #3A3A5C', padding:'6px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-        <span style={{ fontSize:11, color:'#B0AECB' }}>💬 {comments.length} commentaires</span>
-        <button style={{ background:'#534AB7', border:'none', borderRadius:8, padding:'5px 14px', color:'#FFF', fontSize:11, fontWeight:600, cursor:'pointer' }}
-          onClick={() => setRevealed(r => !r)}>
-          {revealed ? 'Reflouter' : 'Révéler'}
+      {/* Bouton commentaires fixe */}
+      <div style={{ position:'absolute', bottom:70, left:0, right:0, display:'flex', justifyContent:'center', padding:'0 20px', zIndex:10, pointerEvents:'none' }}>
+        <button
+          style={{ background:'#534AB7', border:'none', borderRadius:30, padding:'12px 28px', color:'#FFF', fontSize:14, fontWeight:700, cursor:'pointer', pointerEvents:'all', display:'flex', alignItems:'center', gap:8 }}
+          onClick={() => setRevealed(true)}>
+          💬 Commentaires{comments.length > 10 ? ` (${comments.length})` : ''}
         </button>
       </div>
 
-      {/* Filtres */}
-      <div style={{ padding:'5px 14px', display:'flex', gap:5, overflowX:'auto', flexShrink:0, borderBottom:'1px solid #3A3A5C' }}>
-        {[['all', 'Tous'], ['ts', 'Horodatés'], ['mine', 'Les miens']].map(([k, l]) => (
-          <button key={k}
-            style={{ background: filter===k ? '#534AB7' : '#1A2340', border: filter===k ? '1px solid #534AB7' : '1px solid #3A3A5C', borderRadius:20, padding:'3px 9px', color: filter===k ? '#FFF' : '#B0AECB', fontSize:10, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}
-            onClick={() => setFilter(k)}>{l}</button>
-        ))}
-      </div>
-
-      {/* Zone commentaires — scrollable indépendamment */}
-      <div style={{ flex:1, overflowY:'auto', padding:'8px 14px 8px', minHeight:0 }}>
-        {filtered.length === 0 && (
-          <div style={{ textAlign:'center', padding:'20px', color:'#8888A0', fontSize:12 }}>
-            <div style={{ fontSize:26, marginBottom:6 }}>🎬</div>
-            Lance l'épisode et sois le premier !
-          </div>
-        )}
-        {filtered.map(c => (
-          <div key={c.id} style={{ display:'flex', gap:8, marginBottom:10, alignItems:'flex-start' }}>
-            <div style={{ width:26, height:26, borderRadius:'50%', flexShrink:0, background:'#2C2C4A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, overflow:'hidden', cursor:'pointer' }}
-              onClick={() => navigate(`/user/${c.userId}`)}>
-              {c.userPhoto ? <img src={c.userPhoto} style={{ width:'100%', height:'100%' }} alt="" /> : c.userName?.[0]?.toUpperCase()}
-            </div>
-            <div style={{ flex:1, background: c.userId===user.uid ? '#1E1B4B' : '#1A2340', borderRadius:'4px 10px 10px 10px', padding:'7px 10px', border: c.userId===user.uid ? '1px solid #534AB7' : '1px solid #3A3A5C', ...(!revealed ? { filter:'blur(8px)', userSelect:'none', pointerEvents:'none', opacity:0.7 } : {}) }}>
-              <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:3, flexWrap:'wrap' }}>
-                <span style={{ fontSize:11, fontWeight:600, cursor:'pointer' }} onClick={() => navigate(`/user/${c.userId}`)}>
-                  {c.userId === user.uid ? 'Moi' : c.userName}
-                </span>
-                {c.userBadge && <span style={{ fontSize:9, background:'#1E1B4B', borderRadius:8, padding:'1px 4px', color:'#C8C4F8' }}>{c.userBadge}</span>}
-                {c.timestamp != null && <span style={{ fontSize:9, color:'#534AB7', background:'#0F0F1A', borderRadius:4, padding:'1px 4px', fontWeight:600 }}>⏱ {formatTime(c.timestamp)}</span>}
-                {c.replyTo && <span style={{ fontSize:9, background:'#1E1B4B', borderRadius:8, padding:'1px 4px', color:'#C8C4F8' }}>↩ @{c.replyTo.userName}</span>}
-                <span style={{ fontSize:9, color:'#8888A0', marginLeft:'auto' }}>{timeAgo(c.createdAt)}</span>
-              </div>
-              {c.replyTo && <div style={{ fontSize:10, color:'#B0AECB', fontStyle:'italic', borderLeft:'2px solid #3A3A5C', paddingLeft:5, marginBottom:3 }}>"{c.replyTo.text}"</div>}
-              {c.gifUrl && <img src={c.gifUrl} alt="gif" style={{ maxWidth:'100%', borderRadius:8, marginBottom:4 }} />}
-              {c.text && <div style={{ fontSize:12, lineHeight:1.5, color:'#E8E6F8', marginBottom:4 }}>{c.text}</div>}
-              <div style={{ display:'flex', gap:3, flexWrap:'wrap', alignItems:'center' }}>
-                {EMOJIS.map(emoji => {
-                  const cnt = c.reactions?.[emoji] || 0
-                  if (cnt === 0) return null
-                  return (
-                    <button key={emoji} style={{ background:'#0F0F1A', border:'1px solid #3A3A5C', borderRadius:20, padding:'1px 5px', fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', gap:2 }}
-                      onClick={() => addReaction(c.id, emoji)}>
-                      <span style={{ fontSize:10 }}>{emoji}</span>
-                      <span style={{ fontSize:10, color:'#C8C4F8' }}>{cnt}</span>
-                    </button>
-                  )
-                })}
-                {showEmojiFor === c.id
-                  ? <div style={{ display:'flex', gap:4 }}>{EMOJIS.map(e => <button key={e} style={{ fontSize:14, cursor:'pointer', background:'none', border:'none', padding:1 }} onClick={() => addReaction(c.id, e)}>{e}</button>)}</div>
-                  : <button style={{ background:'none', border:'1px solid #3A3A5C', borderRadius:20, padding:'1px 5px', fontSize:10, cursor:'pointer', color:'#B0AECB' }} onClick={() => setShowEmojiFor(c.id)}>+</button>}
-                <button style={{ background:'none', border:'none', color:'#B0AECB', fontSize:10, cursor:'pointer', padding:'0 3px' }} onClick={() => setReplyTo(c)}>↩</button>
-                <button style={{ background:'none', border:'none', color:'#B0AECB', fontSize:10, cursor:'pointer', padding:'0 3px' }} onClick={() => handleShare(c)}>↗</button>
+      {/* Bottom sheet commentaires */}
+      {revealed && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, zIndex:100, display:'flex', flexDirection:'column' }}>
+          <div style={{ flex:'0 0 80px', background:'rgba(0,0,0,0.5)' }} onClick={() => setRevealed(false)} />
+          <div style={{ flex:1, background:'#0F0F1A', display:'flex', flexDirection:'column', borderRadius:'20px 20px 0 0', overflow:'hidden' }}>
+            <div style={{ padding:'12px 16px 8px', borderBottom:'1px solid #3A3A5C', flexShrink:0 }}>
+              <div style={{ width:36, height:4, background:'#3A3A5C', borderRadius:2, margin:'0 auto 12px' }} />
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ display:'flex', gap:6 }}>
+                  {[['all','Tous'],['ts','Horodatés'],['mine','Les miens']].map(([k,l]) => (
+                    <button key={k}
+                      style={{ background:filter===k?'#534AB7':'#1A2340', border:filter===k?'1px solid #534AB7':'1px solid #3A3A5C', borderRadius:20, padding:'4px 12px', color:filter===k?'#FFF':'#B0AECB', fontSize:11, cursor:'pointer' }}
+                      onClick={() => setFilter(k)}>{l}</button>
+                  ))}
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <button style={{ background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:8, padding:'4px 10px', color:'#B0AECB', fontSize:11, cursor:'pointer' }}
+                    onClick={() => setRevealed(false)}>Reflouter</button>
+                  <button style={{ background:'none', border:'none', color:'#B0AECB', fontSize:20, cursor:'pointer' }} onClick={() => setRevealed(false)}>×</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-        {pendingComments.length > 0 && (
-          <div style={{ textAlign:'center', fontSize:10, color:'#B0AECB', padding:4 }}>
-            {pendingComments.length} commentaire(s) en attente de connexion
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
 
-      {/* Barre répondre */}
-      {replyTo && (
-        <div style={{ background:'#1A2340', borderLeft:'2px solid #534AB7', padding:'4px 10px', margin:'0 14px 4px', borderRadius:'0 8px 8px 0', fontSize:10, color:'#C8C4F8', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
-          <span>↩ @{replyTo.userName} : "{replyTo.text?.slice(0, 40)}"</span>
-          <button style={{ background:'none', border:'none', color:'#B0AECB', cursor:'pointer', fontSize:14 }} onClick={() => setReplyTo(null)}>×</button>
+            <div style={{ flex:1, overflowY:'auto', padding:'10px 16px' }}>
+              {filtered.length === 0 && (
+                <div style={{ textAlign:'center', padding:'40px', color:'#8888A0', fontSize:13 }}>
+                  <div style={{ fontSize:32, marginBottom:8 }}>🎬</div>
+                  Lance l'épisode et sois le premier !
+                </div>
+              )}
+              {filtered.map(c => (
+                <div key={c.id} style={{ display:'flex', gap:10, marginBottom:14, alignItems:'flex-start' }}>
+                  <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0, background:'#2C2C4A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, overflow:'hidden', cursor:'pointer' }}
+                    onClick={() => { setRevealed(false); navigate(`/user/${c.userId}`) }}>
+                    {c.userPhoto ? <img src={c.userPhoto} style={{ width:'100%', height:'100%' }} alt="" /> : c.userName?.[0]?.toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, background:c.userId===user.uid?'#1E1B4B':'#1A2340', borderRadius:'4px 12px 12px 12px', padding:'8px 12px', border:c.userId===user.uid?'1px solid #534AB7':'1px solid #3A3A5C' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:12, fontWeight:600, cursor:'pointer' }} onClick={() => { setRevealed(false); navigate(`/user/${c.userId}`) }}>
+                        {c.userId===user.uid?'Moi':c.userName}
+                      </span>
+                      {c.userBadge && <span style={{ fontSize:9, background:'#1E1B4B', borderRadius:8, padding:'1px 5px', color:'#C8C4F8' }}>{c.userBadge}</span>}
+                      {c.timestamp!=null && <span style={{ fontSize:10, color:'#534AB7', background:'#0F0F1A', borderRadius:5, padding:'1px 5px', fontWeight:600 }}>⏱ {formatTime(c.timestamp)}</span>}
+                      {c.replyTo && <span style={{ fontSize:9, background:'#1E1B4B', borderRadius:8, padding:'1px 5px', color:'#C8C4F8' }}>↩ @{c.replyTo.userName}</span>}
+                      <span style={{ fontSize:10, color:'#8888A0', marginLeft:'auto' }}>{timeAgo(c.createdAt)}</span>
+                    </div>
+                    {c.replyTo && <div style={{ fontSize:11, color:'#B0AECB', fontStyle:'italic', borderLeft:'2px solid #3A3A5C', paddingLeft:6, marginBottom:4 }}>"{c.replyTo.text}"</div>}
+                    {c.gifUrl && <img src={c.gifUrl} alt="gif" style={{ maxWidth:'100%', borderRadius:8, marginBottom:4 }} />}
+                    {c.text && <div style={{ fontSize:13, lineHeight:1.6, color:'#E8E6F8', marginBottom:6 }}>{c.text}</div>}
+                    <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center' }}>
+                      {EMOJIS.map(emoji => {
+                        const cnt = c.reactions?.[emoji]||0
+                        if (cnt===0) return null
+                        return (
+                          <button key={emoji} style={{ background:'#0F0F1A', border:'1px solid #3A3A5C', borderRadius:20, padding:'2px 7px', fontSize:11, cursor:'pointer', display:'flex', alignItems:'center', gap:3 }}
+                            onClick={() => addReaction(c.id,emoji)}>
+                            <span>{emoji}</span><span style={{ color:'#C8C4F8' }}>{cnt}</span>
+                          </button>
+                        )
+                      })}
+                      {showEmojiFor===c.id
+                        ? <div style={{ display:'flex', gap:5 }}>{EMOJIS.map(e => <button key={e} style={{ fontSize:16, cursor:'pointer', background:'none', border:'none', padding:2 }} onClick={() => addReaction(c.id,e)}>{e}</button>)}</div>
+                        : <button style={{ background:'none', border:'1px solid #3A3A5C', borderRadius:20, padding:'2px 7px', fontSize:11, cursor:'pointer', color:'#B0AECB' }} onClick={() => setShowEmojiFor(c.id)}>+</button>}
+                      <button style={{ background:'none', border:'none', color:'#B0AECB', fontSize:11, cursor:'pointer', padding:'0 4px' }} onClick={() => setReplyTo(c)}>↩ Répondre</button>
+                      <button style={{ background:'none', border:'none', color:'#B0AECB', fontSize:11, cursor:'pointer', padding:'0 4px' }} onClick={() => handleShare(c)}>↗ Partager</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {pendingComments.length>0 && <div style={{ textAlign:'center', fontSize:11, color:'#B0AECB', padding:6 }}>{pendingComments.length} en attente…</div>}
+              <div ref={bottomRef} />
+            </div>
+
+            {replyTo && (
+              <div style={{ background:'#1A2340', borderLeft:'2px solid #534AB7', padding:'5px 12px', margin:'0 16px 4px', borderRadius:'0 8px 8px 0', fontSize:11, color:'#C8C4F8', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
+                <span>↩ @{replyTo.userName} : "{replyTo.text?.slice(0,40)}"</span>
+                <button style={{ background:'none', border:'none', color:'#B0AECB', cursor:'pointer', fontSize:16 }} onClick={() => setReplyTo(null)}>×</button>
+              </div>
+            )}
+            <div style={{ padding:'8px 16px 16px', borderTop:'1px solid #3A3A5C', background:'#0F0F1A', flexShrink:0 }}>
+              {running && <div style={{ fontSize:11, color:'#534AB7', marginBottom:5 }}>⏱ Sera horodaté à {formatTime(elapsed)}</div>}
+              <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                <textarea
+                  style={{ flex:1, background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:12, padding:'10px 14px', color:'#FFF', fontSize:14, resize:'none', outline:'none', minHeight:42, maxHeight:100, fontFamily:'inherit', lineHeight:1.4 }}
+                  placeholder={replyTo ? `Répondre à @${replyTo.userName}…` : 'Écris ton commentaire…'}
+                  value={text} onChange={e => setText(e.target.value)}
+                  onKeyDown={e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendComment()} }}
+                  rows={1} autoFocus />
+                <button style={{ background:'none', border:'1px solid #3A3A5C', borderRadius:10, width:42, height:42, color:'#B0AECB', fontSize:13, cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}
+                  onClick={openGif}>GIF</button>
+                <button style={{ background:text.trim()?'#534AB7':'#2C2C4A', border:'none', borderRadius:10, width:42, height:42, color:'#FFF', fontSize:16, cursor:text.trim()?'pointer':'not-allowed', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}
+                  onClick={sendComment} disabled={!text.trim()}>➤</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Zone de saisie — toujours visible */}
-      <div style={{ padding:'7px 14px 10px', borderTop:'1px solid #3A3A5C', background:'#0F0F1A', flexShrink:0 }}>
-        {running && <div style={{ fontSize:10, color:'#534AB7', marginBottom:4 }}>⏱ Sera horodaté à {formatTime(elapsed)}</div>}
-        <div style={{ display:'flex', gap:7, alignItems:'flex-end' }}>
-          <textarea
-            style={{ flex:1, background:'#1A2340', border:'1px solid #3A3A5C', borderRadius:10, padding:'8px 11px', color:'#FFF', fontSize:13, resize:'none', outline:'none', minHeight:36, maxHeight:80, fontFamily:'inherit', lineHeight:1.4 }}
-            placeholder={replyTo ? `Répondre à @${replyTo.userName}…` : 'Écris ton commentaire…'}
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendComment() } }}
-            rows={1}
-          />
-          <button
-            style={{ background:'none', border:'1px solid #3A3A5C', borderRadius:9, width:36, height:36, color:'#B0AECB', fontSize:12, cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:600 }}
-            onClick={() => setShowGif(g => !g)}>
-            GIF
-          </button>
-          <button
-            style={{ background: text.trim() ? '#534AB7' : '#2C2C4A', border:'none', borderRadius:9, width:36, height:36, color:'#FFF', fontSize:14, cursor: text.trim() ? 'pointer' : 'not-allowed', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}
-            onClick={sendComment}
-            disabled={!text.trim()}>
-            ➤
-          </button>
-        </div>
-      </div>
-
       <Nav />
     </div>
   )

@@ -250,7 +250,7 @@ export default function Profile({ user }) {
       {activeList && (
         <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.9)', zIndex:200, display:'flex', flexDirection:'column' }}>
           <div style={{ padding:'16px', display:'flex', alignItems:'center', gap:12, borderBottom:'1px solid #3A3A5C' }}>
-            <button style={{ background:'none', border:'none', color:'#FFF', fontSize:20, cursor:'pointer' }} onClick={() => setActiveList(null)}>←</button>
+            <button style={{ background:'none', border:'none', color:'#FFF', fontSize:20, cursor:'pointer' }} onClick={() => setActiveList(null)}>‹</button>
             <span style={{ fontSize:15, fontWeight:700 }}>{activeList === 'comments' ? 'Mes commentaires' : activeList === 'movieFavs' ? 'Films favoris' : activeList === 'serieFavs' ? 'Séries favorites' : 'Réactions reçues'}</span>
           </div>
           <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>

@@ -5,8 +5,6 @@ import { db } from '../firebase'
 import Nav from '../components/Nav'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
-
-// Genres à exclure (talk shows, late shows, reality, news, documentaires)
 const EXCLUDED_GENRE_IDS = [10767, 10763, 10764, 99]
 
 function formatTime(secs) {
@@ -14,13 +12,8 @@ function formatTime(secs) {
   return `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`
 }
 
-// Cœur SVG minimaliste
-function Heart({ filled, size=20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "#E24B4A" : "none"} stroke={filled ? "#E24B4A" : "#B0AECB"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    </svg>
-  )
+function isLatinTitle(t) {
+  return /^[\x00-\x7F\u00C0-\u024F\s\d\-\:\!\?\.\,\'\"]+$/.test(t?.name || t?.title || '')
 }
 
 const s = {
@@ -46,7 +39,7 @@ const s = {
   buzzBadge: { background:'#1E1B4B', borderRadius:20, padding:'3px 10px', fontSize:11, color:'#C8C4F8', fontWeight:600, flexShrink:0, marginLeft:8 },
   scrollRow: { display:'flex', gap:10, overflowX:'auto', padding:'0 20px 8px', scrollbarWidth:'none' },
   releaseCard: { flexShrink:0, width:120, background:'#1A2340', borderRadius:12, overflow:'hidden', border:'1px solid #3A3A5C', cursor:'pointer' },
-  releaseImg: { width:'100%', height:68, objectFit:'cover', background:'#2C2C4A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 },
+  releaseImg: { width:'100%', height:68, objectFit:'cover', background:'#2C2C4A' },
   releaseInfo: { padding:'8px' },
   releaseTitle: { fontSize:11, fontWeight:600, color:'#FFFFFF', lineHeight:1.3, marginBottom:2 },
   releaseMeta: { fontSize:10, color:'#B0AECB' },
@@ -61,18 +54,15 @@ export default function Home({ user }) {
   const [newSeries, setNewSeries] = useState([])
   const [showSeries, setShowSeries] = useState([])
   const [streamingMovies, setStreamingMovies] = useState([])
-  const [userLang, setUserLang] = useState('fr-FR')
 
-  // Scènes qui buzzent — lit depuis userComments (collection plate)
   useEffect(() => {
-    const q = query(collection(db, 'userComments'), orderBy('createdAt','desc'), limit(200))
+    const q = query(collection(db, 'userComments'), orderBy('createdAt', 'desc'), limit(200))
     return onSnapshot(q, snap => {
       const buckets = {}
       snap.docs.forEach(doc => {
         const d = doc.data()
         if (!d.showId) return
-        // Grouper par épisode + fenêtre de 60s si timestamp dispo, sinon juste par épisode
-        const tBucket = d.timestamp != null ? Math.floor(d.timestamp/60) : 'notimed'
+        const tBucket = d.timestamp != null ? Math.floor(d.timestamp / 60) : 'notimed'
         const key = `${d.showId}_${d.seasonNum}_${d.episodeNum}_${tBucket}`
         if (!buckets[key]) buckets[key] = {
           showId: d.showId, showName: d.showName,
@@ -81,44 +71,34 @@ export default function Home({ user }) {
           isMovie: !d.seasonNum || d.seasonNum === 0
         }
         buckets[key].count++
-        buckets[key].count += Object.values(d.reactions||{}).reduce((a,b)=>a+b,0)
+        buckets[key].count += Object.values(d.reactions || {}).reduce((a, b) => a + b, 0)
       })
-      const sorted = Object.values(buckets)
-        .filter(b => b.count > 0)
-        .sort((a,b) => b.count - a.count)
-        .slice(0, 5)
-      setBuzzScenes(sorted)
+      setBuzzScenes(Object.values(buckets).filter(b => b.count > 0).sort((a, b) => b.count - a.count).slice(0, 5))
     })
   }, [])
 
-  // Mes séries en cours
   useEffect(() => {
     if (!user) return
-    const q = query(collection(db, 'userComments'), where('userId','==',user.uid), orderBy('createdAt','desc'), limit(20))
+    const q = query(collection(db, 'userComments'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(20))
     return onSnapshot(q, snap => {
       const grouped = {}
       snap.docs.forEach(doc => {
         const d = doc.data()
         if (!grouped[d.showId]) grouped[d.showId] = d
       })
-      setInProgress(Object.values(grouped).slice(0,4))
+      setInProgress(Object.values(grouped).slice(0, 4))
     })
   }, [user])
 
-  // Sorties séries + shows + films streaming
   useEffect(() => {
     Promise.all([
-      fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&language=fr-FR&with_original_language=fr|en&sort_by=popularity.desc&page=1`).then(r=>r.json()),
-      fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&language=fr-FR&with_original_language=fr|en&sort_by=popularity.desc&with_watch_monetization_types=flatrate`).then(r=>r.json()),
+      fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${TMDB_KEY}&language=fr-FR&with_original_language=fr|en&sort_by=popularity.desc`).then(r => r.json()),
+      fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&language=fr-FR&with_original_language=fr|en&sort_by=popularity.desc&with_watch_monetization_types=flatrate`).then(r => r.json()),
     ]).then(([tv, movies]) => {
-      const allTV = tv.results || []
-      // Séparer séries scripted et shows
-      const isLatinTitle = t => /^[\x00-\x7F\u00C0-\u024F\s]+$/.test(t?.name || t?.title || '')
-      const scripted = allTV.filter(s => !s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g)) && isLatinTitle(s)).slice(0,8)
-      const shows = allTV.filter(s => s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g)) && isLatinTitle(s)).slice(0,8)
-      setNewSeries(scripted)
-      setShowSeries(shows)
-      setStreamingMovies((movies.results||[]).filter(m => isLatinTitle(m)).slice(0,8))
+      const allTV = (tv.results || []).filter(isLatinTitle)
+      setNewSeries(allTV.filter(s => !s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g))).slice(0, 8))
+      setShowSeries(allTV.filter(s => s.genre_ids?.some(g => EXCLUDED_GENRE_IDS.includes(g))).slice(0, 8))
+      setStreamingMovies((movies.results || []).filter(isLatinTitle).slice(0, 8))
     })
   }, [])
 
@@ -126,6 +106,15 @@ export default function Home({ user }) {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const photoURL = user?.photoURL || ''
+
+  // Navigation homogène — toutes les séries passent par ShowDetail
+  function goToShow(show) {
+    navigate(`/show/${show.id}`, { state: { fromSearch: false } })
+  }
+
+  function goToMovie(movie) {
+    navigate(`/episode/${movie.id}/0/0`, { state: { show: { ...movie, media_type: 'movie' } } })
+  }
 
   return (
     <div style={s.page}>
@@ -152,13 +141,16 @@ export default function Home({ user }) {
         <div style={s.section}>
           <div style={s.sectionTitle}>Reprendre</div>
           {inProgress.map((item, i) => (
-            <div key={i} style={s.card} onClick={() => navigate(`/episode/${item.showId}/${item.seasonNum}/${item.episodeNum}`)}>
+            <div key={i} style={s.card} onClick={() => {
+              if (!item.seasonNum || item.seasonNum === 0) goToMovie({ id: item.showId, title: item.showName, poster_path: item.showPoster })
+              else navigate(`/show/${item.showId}`)
+            }}>
               <div style={s.cardImg}>
                 {item.showPoster ? <img src={`https://image.tmdb.org/t/p/w92${item.showPoster}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '📺'}
               </div>
               <div style={s.cardInfo}>
                 <div style={s.cardTitle}>{item.showName}</div>
-                <div style={s.cardMeta}>{(!item.seasonNum||item.seasonNum===0) ? 'Film' : `S${String(item.seasonNum).padStart(2,'0')}E${String(item.episodeNum).padStart(2,'0')}`}</div>
+                <div style={s.cardMeta}>{(!item.seasonNum || item.seasonNum === 0) ? 'Film' : `S${String(item.seasonNum).padStart(2,'0')}E${String(item.episodeNum).padStart(2,'0')}`}</div>
               </div>
               <span style={{ fontSize:15, color:'#B0AECB' }}>›</span>
             </div>
@@ -175,7 +167,7 @@ export default function Home({ user }) {
                 <div style={s.buzzTitle}>{scene.showName}</div>
                 <div style={s.buzzMeta}>
                   {scene.isMovie ? 'Film' : `S${String(scene.seasonNum).padStart(2,'0')}E${String(scene.episodeNum).padStart(2,'0')}`}
-                  {scene.timestamp !== undefined && ` · ${formatTime(scene.timestamp)}`}
+                  {scene.timestamp !== undefined && scene.timestamp !== null && ` · ${formatTime(scene.timestamp)}`}
                 </div>
               </div>
               <div style={s.buzzBadge}>🔥 {scene.count} réactions</div>
@@ -189,9 +181,9 @@ export default function Home({ user }) {
           <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>📺 Séries — cette semaine</div></div>
           <div style={{ ...s.scrollRow, marginTop:10 }}>
             {newSeries.map(show => (
-              <div key={show.id} style={s.releaseCard} onClick={() => navigate('/search', { state:{ autoSelect:{ ...show, media_type:'tv' } } })}>
+              <div key={show.id} style={s.releaseCard} onClick={() => goToShow(show)}>
                 <div style={s.releaseImg}>
-                  {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '📺'}
+                  {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : <div style={{ ...s.releaseImg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>📺</div>}
                 </div>
                 <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
               </div>
@@ -205,9 +197,9 @@ export default function Home({ user }) {
           <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>🎬 Films populaires en streaming</div></div>
           <div style={{ ...s.scrollRow, marginTop:10 }}>
             {streamingMovies.map(movie => (
-              <div key={movie.id} style={s.releaseCard} onClick={() => navigate(`/episode/${movie.id}/0/0`, { state:{ show:{ ...movie, media_type:'movie' } } })}>
+              <div key={movie.id} style={s.releaseCard} onClick={() => goToMovie(movie)}>
                 <div style={s.releaseImg}>
-                  {movie.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${movie.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '🎬'}
+                  {movie.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${movie.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : <div style={{ ...s.releaseImg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>🎬</div>}
                 </div>
                 <div style={s.releaseInfo}>
                   <div style={s.releaseTitle}>{movie.title}</div>
@@ -224,9 +216,9 @@ export default function Home({ user }) {
           <div style={s.sectionHeader}><div style={s.sectionHeaderTitle}>🎤 Shows & Divertissement</div></div>
           <div style={{ ...s.scrollRow, marginTop:10 }}>
             {showSeries.map(show => (
-              <div key={show.id} style={s.releaseCard} onClick={() => navigate('/search', { state:{ autoSelect:{ ...show, media_type:'tv' } } })}>
+              <div key={show.id} style={s.releaseCard} onClick={() => goToShow(show)}>
                 <div style={s.releaseImg}>
-                  {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : '🎤'}
+                  {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : <div style={{ ...s.releaseImg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>🎤</div>}
                 </div>
                 <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
               </div>
