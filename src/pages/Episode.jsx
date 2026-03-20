@@ -73,6 +73,7 @@ export default function Episode({ user }) {
 
   // User stats
   const [userCommentCount, setUserCommentCount] = useState(0)
+  const [showGenres, setShowGenres] = useState([])
 
   const bottomRef = useRef(null)
   const isMovie = seasonNum === '0' && episodeNum === '0'
@@ -95,6 +96,7 @@ export default function Episode({ user }) {
       fetch(url).then(r => r.json()).then(d => {
         setShow(d)
         if (d.runtime) setMaxTime(d.runtime * 60)
+        setShowGenres((d.genres||[]).map(g => g.name))
       })
     }
     if (!episode && parseInt(seasonNum) > 0) {
@@ -194,6 +196,9 @@ export default function Episode({ user }) {
       showId,
       showName: show?.name || show?.title || '',
       showPoster: show?.poster_path || '',
+      showGenres: (show?.genres || []).map(g => g.name),
+      showMediaType: isMovie ? 'movie' : 'tv',
+      showGenres: showGenres,
       seasonNum: parseInt(seasonNum),
       episodeNum: parseInt(episodeNum),
       episodeName: episode?.name || show?.title || '',
@@ -282,6 +287,9 @@ export default function Episode({ user }) {
       timestamp: running ? elapsed : null,
       showId, showName: show?.name || show?.title || '',
       showPoster: show?.poster_path || '',
+      showGenres: (show?.genres || []).map(g => g.name),
+      showMediaType: isMovie ? 'movie' : 'tv',
+      showGenres: showGenres,
       seasonNum: parseInt(seasonNum), episodeNum: parseInt(episodeNum),
       episodeName: episode?.name || show?.title || '',
       replyTo: null, reactions: {}, createdAt: serverTimestamp()

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore'
+import { collection, query, orderBy, limit, onSnapshot, where, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import Nav from '../components/Nav'
+import HeartButton from '../components/HeartButton'
+import FavButton from '../components/FavButton'
 
 const TMDB_KEY = '8265bd1679663a7ea12ac168da84d2e8'
 const EXCLUDED_GENRE_IDS = [10767, 10763, 10764, 99]
@@ -47,13 +49,36 @@ const s = {
   sectionHeaderTitle: { fontSize:11, fontWeight:600, color:'#B0AECB', textTransform:'uppercase', letterSpacing:'0.08em' },
 }
 
+
+function Heart({ filled, size=16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      fill={filled ? "#B0AECB" : "none"} stroke="#B0AECB"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )
+}
+
 export default function Home({ user }) {
   const navigate = useNavigate()
   const [buzzScenes, setBuzzScenes] = useState([])
+  const [favorites, setFavorites] = useState({})
+  const [favLocks, setFavLocks] = useState({})
   const [inProgress, setInProgress] = useState([])
   const [newSeries, setNewSeries] = useState([])
   const [showSeries, setShowSeries] = useState([])
   const [streamingMovies, setStreamingMovies] = useState([])
+
+  useEffect(() => {
+    if (!user) return
+    const q = query(collection(db, 'favorites'), where('userId','==',user.uid))
+    return onSnapshot(q, snap => {
+      const favMap = {}
+      snap.docs.forEach(d => { if (!d.data().deleted) favMap[d.data().showId] = true })
+      setFavorites(favMap)
+    })
+  }, [user])
 
   useEffect(() => {
     const q = query(collection(db, 'userComments'), orderBy('createdAt', 'desc'), limit(200))
@@ -107,6 +132,30 @@ export default function Home({ user }) {
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const photoURL = user?.photoURL || ''
 
+  async function toggleFav(e, item, isMovie) {
+    e.stopPropagation()
+    const showId = String(item.id || item.showId)
+    if (favLocks[showId]) return
+    setFavLocks(l => ({ ...l, [showId]: true }))
+    try {
+      const favRef = doc(db, 'favorites', `${user.uid}_${showId}`)
+      const countRef = doc(db, 'favoriteCounts', showId)
+      const snap = await getDoc(favRef)
+      const currentlyFav = snap.exists() && !snap.data()?.deleted
+      const countSnap = await getDoc(countRef)
+      const currentCount = countSnap.exists() ? countSnap.data().count || 0 : 0
+      if (currentlyFav) {
+        await setDoc(favRef, { deleted: true, updatedAt: serverTimestamp() }, { merge: true })
+        await setDoc(countRef, { count: Math.max(0, currentCount - 1) }, { merge: true })
+      } else {
+        await setDoc(favRef, { userId: user.uid, showId, showName: item.name || item.title || item.showName || '', showPoster: item.poster_path || item.showPoster || '', isMovie: !!isMovie, deleted: false, createdAt: serverTimestamp() })
+        await setDoc(countRef, { count: currentCount + 1 }, { merge: true })
+      }
+    } finally {
+      setFavLocks(l => { const n = {...l}; delete n[showId]; return n })
+    }
+  }
+
   // Navigation homogène — toutes les séries passent par ShowDetail
   function goToShow(show) {
     navigate(`/show/${show.id}`, { state: { fromSearch: false } })
@@ -152,7 +201,7 @@ export default function Home({ user }) {
                 <div style={s.cardTitle}>{item.showName}</div>
                 <div style={s.cardMeta}>{(!item.seasonNum || item.seasonNum === 0) ? 'Film' : `S${String(item.seasonNum).padStart(2,'0')}E${String(item.episodeNum).padStart(2,'0')}`}</div>
               </div>
-              <span style={{ fontSize:15, color:'#B0AECB' }}>›</span>
+              <FavButton user={user} showId={String(item.showId)} showName={item.showName} showPoster={item.showPoster} isMovie={!item.seasonNum||item.seasonNum===0} size={16} />
             </div>
           ))}
         </div>
@@ -170,7 +219,10 @@ export default function Home({ user }) {
                   {scene.timestamp !== undefined && scene.timestamp !== null && ` · ${formatTime(scene.timestamp)}`}
                 </div>
               </div>
-              <div style={s.buzzBadge}>🔥 {scene.count} réactions</div>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={s.buzzBadge}>🔥 {scene.count} réactions</div>
+                <FavButton user={user} showId={String(scene.showId)} showName={scene.showName} showPoster={''} isMovie={scene.isMovie} size={16} />
+              </div>
             </div>
           ))}
         </div>
@@ -185,7 +237,15 @@ export default function Home({ user }) {
                 <div style={s.releaseImg}>
                   {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : <div style={{ ...s.releaseImg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>📺</div>}
                 </div>
-                <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
+                <div style={s.releaseInfo}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={s.releaseTitle}>{show.name}</div>
+                    <button style={{ background:'none', border:'none', cursor:'pointer', padding:2, flexShrink:0 }}
+                      onClick={e => toggleFav(e, show, false)}>
+                      <Heart filled={!!favorites[String(show.id)]} size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -202,7 +262,13 @@ export default function Home({ user }) {
                   {movie.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${movie.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : <div style={{ ...s.releaseImg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>🎬</div>}
                 </div>
                 <div style={s.releaseInfo}>
-                  <div style={s.releaseTitle}>{movie.title}</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={s.releaseTitle}>{movie.title}</div>
+                    <button style={{ background:'none', border:'none', cursor:'pointer', padding:2, flexShrink:0 }}
+                      onClick={e => toggleFav(e, movie, true)}>
+                      <Heart filled={!!favorites[String(movie.id)]} size={14} />
+                    </button>
+                  </div>
                   <div style={s.releaseMeta}>{movie.release_date?.slice(0,4)}</div>
                 </div>
               </div>

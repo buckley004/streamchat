@@ -122,13 +122,22 @@ export default function Profile({ user }) {
       const allComments = snap.docs.map(d => d.data())
       setComments([...allComments].sort((a,b) => (b.createdAt?.toMillis()||0) - (a.createdAt?.toMillis()||0)))
       const commentCount = allComments.length
-      const reactionsReceived = allComments.reduce((acc,c) => acc + Object.values(c.reactions||{}).reduce((a,b)=>a+b,0), 0)
+      const reactionsReceived = allComments.reduce((acc,c) => acc + Object.values(c.reactions||{}).reduce((a,b)=>a+parseInt(b),0), 0)
 
       // Tags automatiques depuis les genres
       const genreCounts = {}
-      allComments.forEach(c => { if (c.showGenres) c.showGenres.forEach(g => { genreCounts[g] = (genreCounts[g]||0)+1 }) })
+      allComments.forEach(c => {
+        if (c.showGenres && c.showGenres.length > 0) {
+          c.showGenres.forEach(g => { genreCounts[g] = (genreCounts[g]||0)+1 })
+        }
+      })
       const topGenres = Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([g])=>g)
-      setAutoTags(topGenres)
+      // Fallback si pas de genres stockés - afficher genres génériques basés sur les shows commentés
+      if (topGenres.length === 0 && allComments.length > 0) {
+        setAutoTags(['Séries & Films'])
+      } else {
+        setAutoTags(topGenres)
+      }
 
       setStats(s => ({ ...s, comments: commentCount, reactions: reactionsReceived }))
       setDoc(doc(db, 'users', user.uid), { commentCount, reactionsReceived }, { merge:true })
