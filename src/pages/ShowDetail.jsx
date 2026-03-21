@@ -21,7 +21,7 @@ export default function ShowDetail({ user }) {
   const { showId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const [show, setShow] = useState(null)
+  const [show, setShow] = useState(location?.state?.show || null)
   const [seasons, setSeasons] = useState([])
   const [openSeason, setOpenSeason] = useState(null)
   const [episodes, setEpisodes] = useState({})

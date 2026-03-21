@@ -158,7 +158,7 @@ export default function Home({ user }) {
 
   // Navigation homogène — toutes les séries passent par ShowDetail
   function goToShow(show) {
-    navigate(`/show/${show.id}`, { state: { fromSearch: false } })
+    navigate(`/show/${show.id}`, { state: { show, fromSearch: false } })
   }
 
   function goToMovie(movie) {
@@ -286,7 +286,10 @@ export default function Home({ user }) {
                 <div style={s.releaseImg}>
                   {show.backdrop_path ? <img src={`https://image.tmdb.org/t/p/w300${show.backdrop_path}`} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" /> : <div style={{ ...s.releaseImg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>🎤</div>}
                 </div>
-                <div style={s.releaseInfo}><div style={s.releaseTitle}>{show.name}</div></div>
+                <div style={{ ...s.releaseInfo, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div style={s.releaseTitle}>{show.name}</div>
+                  <HeartButton user={user} showId={String(show.id)} showName={show.name} showPoster={show.poster_path} isMovie={false} size={14} />
+                </div>
               </div>
             ))}
           </div>
