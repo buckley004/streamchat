@@ -281,7 +281,7 @@ export default function Profile({ user }) {
           <div style={c.statNum}>{stats.serieFavs}</div><div style={c.statLabel}>Séries favorites</div>
         </div>
         <div style={c.statCard} onClick={() => setActiveList('reactions')}>
-          <div style={c.statNum}>{stats.reactions}</div><div style={c.statLabel}>Réactions reçues</div>
+          <div style={c.statNum}>{stats.reactions === 0 ? '🤷‍♂️' : stats.reactions}</div><div style={c.statLabel}>Réactions reçues</div>
         </div>
       </div>
 
