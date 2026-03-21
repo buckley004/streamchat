@@ -27,12 +27,16 @@ export default function ShowDetail({ user }) {
   const [episodes, setEpisodes] = useState({})
 
   useEffect(() => {
+    // Toujours charger depuis TMDB pour avoir les saisons complètes
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${TMDB_KEY}&language=fr-FR`)
       .then(r => r.json())
       .then(d => {
-        setShow(d)
-        setSeasons((d.seasons || []).filter(s => s.season_number > 0))
+        if (d && d.id) {
+          setShow(d)
+          setSeasons((d.seasons || []).filter(s => s.season_number > 0))
+        }
       })
+      .catch(() => {})
   }, [showId])
 
 
@@ -55,11 +59,7 @@ export default function ShowDetail({ user }) {
     }
   }
 
-  if (!show) return (
-    <div style={{ background:'#0F0F1A', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'#B0AECB' }}>
-      Chargement…
-    </div>
-  )
+  // show peut être null pendant le chargement - on affiche quand même la structure
 
   return (
     <div style={{ minHeight:'100vh', background:'#0F0F1A', color:'#FFF', paddingBottom:70 }}>
@@ -67,7 +67,7 @@ export default function ShowDetail({ user }) {
       {/* Bannière avec bouton retour */}
       <div style={{ position:'relative' }}>
         {show.backdrop_path
-          ? <img src={`https://image.tmdb.org/t/p/w780${show.backdrop_path}`} style={{ width:'100%', height:200, objectFit:'cover', display:'block' }} alt="" />
+          ? <img src={`https://image.tmdb.org/t/p/w780${show?.backdrop_path}`} style={{ width:'100%', height:200, objectFit:'cover', display:'block' }} alt="" />
           : <div style={{ width:'100%', height:160, background:'#16213E', display:'flex', alignItems:'center', justifyContent:'center', fontSize:48 }}>📺</div>}
         <button
           style={{ position:'absolute', top:16, left:16, background:'rgba(0,0,0,0.6)', border:'none', borderRadius:20, width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#FFF', fontSize:20 }}
@@ -77,7 +77,7 @@ export default function ShowDetail({ user }) {
       {/* Titre + favori + synopsis */}
       <div style={{ padding:'16px 16px 14px', borderBottom:'1px solid #3A3A5C' }}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:10 }}>
-          <div style={{ fontSize:20, fontWeight:700, flex:1, lineHeight:1.3 }}>{show.name}</div>
+          <div style={{ fontSize:20, fontWeight:700, flex:1, lineHeight:1.3 }}>{show?.name || 'Chargement…'}</div>
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
             <button
               style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}
@@ -87,7 +87,7 @@ export default function ShowDetail({ user }) {
             {favCount > 0 && <span style={{ fontSize:11, color:'#B0AECB' }}>{favCount}</span>}
           </div>
         </div>
-        {show.overview && (
+        {show?.overview && (
           <div style={{ fontSize:13, color:'#B0AECB', lineHeight:1.6 }}>{show.overview}</div>
         )}
       </div>
